@@ -26,10 +26,13 @@ export interface QuickLink {
   deletedAt?: number;
 }
 
+export type DefaultSearchEngine = 'google' | 'bing' | 'baidu';
+export type SearchEngine = DefaultSearchEngine | 'github' | 'npm';
+
 export interface AppSettings {
   id: 'app-settings';
   theme: 'system' | 'light' | 'dark';
-  defaultSearchEngine: 'google' | 'bing' | 'baidu';
+  defaultSearchEngine: DefaultSearchEngine;
   defaultOpenMode: 'current' | 'new-tab';
   version: number;
   updatedAt: number;
@@ -42,8 +45,6 @@ export interface ExportData {
   links: QuickLink[];
   settings: AppSettings;
 }
-
-export type SearchEngine = 'google' | 'bing' | 'baidu' | 'github' | 'npm';
 
 export interface SearchPrefix {
   prefix: string;
