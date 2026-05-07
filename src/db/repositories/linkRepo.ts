@@ -68,15 +68,18 @@ export async function moveLinksToGroup(
 }
 
 export async function updateLinksSort(
-  _groupId: string,
+  groupId: string,
   orderedIds: string[]
 ): Promise<void> {
   await db.transaction('rw', db.links, async () => {
     for (let i = 0; i < orderedIds.length; i++) {
-      await db.links.update(orderedIds[i], {
-        sort: i + 1,
-        updatedAt: Date.now(),
-      });
+      const link = await db.links.get(orderedIds[i]);
+      if (link && link.groupId === groupId) {
+        await db.links.update(orderedIds[i], {
+          sort: i + 1,
+          updatedAt: Date.now(),
+        });
+      }
     }
   });
 }

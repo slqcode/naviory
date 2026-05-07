@@ -38,7 +38,10 @@ export async function updateGroup(
 }
 
 export async function deleteGroup(id: string): Promise<void> {
-  await db.groups.delete(id);
+  await db.transaction('rw', [db.groups, db.links], async () => {
+    await db.links.where('groupId').equals(id).delete();
+    await db.groups.delete(id);
+  });
 }
 
 export async function updateGroupsSort(orderedIds: string[]): Promise<void> {
