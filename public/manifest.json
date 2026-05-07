@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Naviory - 新标签页工作台",
+  "version": "0.1.0",
+  "description": "个人自用的新标签页快捷入口管理工具",
+  "chrome_url_overrides": {
+    "newtab": "src/newtab/index.html"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "保存到 Naviory"
+  },
+  "options_page": "src/options/index.html",
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "permissions": ["storage", "tabs", "activeTab"],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
