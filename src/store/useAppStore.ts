@@ -101,13 +101,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       if (strategy === 'move-to-temp') {
+        // 找不到"临时"分组时必须抛错，避免链接被级联静默删除
         const tempGroup = get().groups.find((g) => g.name === '临时');
-        if (tempGroup) {
-          await linkRepo.moveLinksToGroup(id, tempGroup.id);
+        if (!tempGroup) {
+          throw new Error('未找到"临时"分组，无法移动链接');
         }
-        await groupRepo.deleteGroup(id);
+        if (tempGroup.id === id) {
+          throw new Error('不能将"临时"分组移动到自身');
+        }
+        // 将链接先移动到临时分组，再删除空分组（事务保证原子性）
+        await db.transaction('rw', [db.groups, db.links], async () => {
+          await linkRepo.moveLinksToGroup(id, tempGroup.id);
+          await db.groups.delete(id);
+        });
       } else {
-        // 'cascade': deleteGroup already cascades link deletion
+        // 'cascade': deleteGroup 内部已级联删除链接
         await groupRepo.deleteGroup(id);
       }
       const [groups, links] = await Promise.all([
@@ -236,17 +244,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       if (mode === 'overwrite') {
-        // Clear everything first
-        await db.links.clear();
-        await db.groups.clear();
-        await db.settings.clear();
-
-        // Bulk-insert imported data
-        if (data.groups.length > 0) await db.groups.bulkAdd(data.groups);
-        if (data.links.length > 0) await db.links.bulkAdd(data.links);
-        await db.settings.put(data.settings);
+        // 整个覆盖操作包在事务中，失败时回滚，避免数据部分丢失
+        await db.transaction('rw', [db.groups, db.links, db.settings], async () => {
+          await db.links.clear();
+          await db.groups.clear();
+          await db.settings.clear();
+          if (data.groups.length > 0) await db.groups.bulkAdd(data.groups);
+          if (data.links.length > 0) await db.links.bulkAdd(data.links);
+          await db.settings.put(data.settings);
+        });
       } else {
-        // 'merge': add new, update existing
+        // 'merge': 新增不存在的，更新已存在的
         await db.transaction('rw', [db.groups, db.links, db.settings], async () => {
           for (const group of data.groups) {
             await db.groups.put(group);
