@@ -52,6 +52,16 @@ pnpm build
 
 构建成功后会在 `dist/` 目录生成完整的扩展包。
 
+### 运行测试
+
+```bash
+pnpm test         # 运行一次
+pnpm test:watch   # 监听模式
+pnpm test:ui      # Vitest UI
+```
+
+测试使用 Vitest + jsdom + fake-indexeddb，覆盖工具函数层和 Zustand store 的关键行为（63 个用例）。
+
 ## 安装到浏览器
 
 以 Chrome / Edge 为例：
