@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useAppStore } from '@/store/useAppStore';
+import { getGroupIcon, getGroupColorStyle } from '@/utils/groupTheme';
 import type { LinkGroup, QuickLink } from '@/types';
 import LinkCard from './LinkCard';
 
@@ -53,17 +54,23 @@ export default function GroupSection({
     reorderLinks(group.id, orderedIds);
   };
 
+  const GroupIcon = getGroupIcon(group.icon);
+  const colorStyle = getGroupColorStyle(group.color);
+
   return (
     <section className="card p-4">
       {/* 分组头部 */}
       <header className="flex items-center justify-between mb-3">
         <button
           onClick={() => toggleGroupCollapsed(group.id)}
-          className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600"
+          className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 min-w-0"
         >
-          {group.collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-          <span>{group.name}</span>
-          <span className="text-xs text-gray-500">({links.length})</span>
+          {group.collapsed ? <ChevronRight size={16} className="shrink-0" /> : <ChevronDown size={16} className="shrink-0" />}
+          <span className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${colorStyle.bgClass}`}>
+            <GroupIcon size={14} className={colorStyle.textClass} />
+          </span>
+          <span className="truncate">{group.name}</span>
+          <span className="text-xs text-gray-500 shrink-0">({links.length})</span>
         </button>
 
         <div className="relative">
