@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Settings,
   Palette,
@@ -46,7 +46,20 @@ export default function OptionsApp() {
     danger?: boolean;
     onConfirm: () => void | Promise<void>;
   } | null>(null);
+  const [confirmSubmitting, setConfirmSubmitting] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
+
+  const openConfirmDialog = (config: NonNullable<typeof confirmConfig>) => {
+    if (confirmOpen) return;
+    setConfirmConfig(config);
+    setConfirmOpen(true);
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmSubmitting(false);
+    setConfirmOpen(false);
+    setConfirmConfig(null);
+  };
 
   useEffect(() => {
     initialize();
@@ -89,7 +102,7 @@ export default function OptionsApp() {
           toast.error('JSON 格式不正确');
           return;
         }
-        setConfirmConfig({
+        openConfirmDialog({
           title: '导入数据',
           message: '导入数据会覆盖当前所有数据，确定继续吗？',
           confirmLabel: '覆盖导入',
@@ -99,7 +112,6 @@ export default function OptionsApp() {
             toast.success('导入成功');
           },
         });
-        setConfirmOpen(true);
       } catch (err) {
         toast.error((err as Error).message);
       }
@@ -108,21 +120,16 @@ export default function OptionsApp() {
   };
 
   const handleClearData = () => {
-    setConfirmConfig({
+    openConfirmDialog({
       title: '清空全部数据',
       message: '此操作将永久删除所有分组、链接和设置，并重置为默认状态。此操作不可恢复，确定继续吗？',
       confirmLabel: '确认清空',
       danger: true,
       onConfirm: async () => {
-        try {
-          await clearAllData();
-          toast.success('数据已清空');
-        } catch (err) {
-          toast.error((err as Error).message);
-        }
+        await clearAllData();
+        toast.success('数据已清空');
       },
     });
-    setConfirmOpen(true);
   };
 
   const handleImportHtml = () => {
@@ -273,14 +280,21 @@ export default function OptionsApp() {
           confirmLabel={confirmConfig.confirmLabel}
           danger={confirmConfig.danger}
           onConfirm={async () => {
+            if (confirmSubmitting || !confirmConfig) return;
+
+            setConfirmSubmitting(true);
             try {
               await confirmConfig.onConfirm();
-              setConfirmOpen(false);
+              closeConfirmDialog();
             } catch (err) {
+              setConfirmSubmitting(false);
               toast.error((err as Error).message || '操作失败，请重试');
             }
           }}
-          onCancel={() => setConfirmOpen(false)}
+          onCancel={() => {
+            if (confirmSubmitting) return;
+            closeConfirmDialog();
+          }}
         />
       )}
 
@@ -299,9 +313,9 @@ function Section({
   title,
   children,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="card p-4">
@@ -328,8 +342,8 @@ function RadioRow({
   options: { value: string; label: string }[];
 }) {
   return (
-    <div>
-      <div className="text-sm mb-2 text-gray-600 dark:text-gray-400">{label}</div>
+    <fieldset>
+      <legend className="text-sm mb-2 text-gray-600 dark:text-gray-400">{label}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map((opt) => (
           <label
@@ -352,6 +366,6 @@ function RadioRow({
           </label>
         ))}
       </div>
-    </div>
+    </fieldset>
   );
 }
