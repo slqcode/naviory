@@ -2,13 +2,27 @@ import { useState, useCallback, useEffect } from 'react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
+export interface ToastOptions {
+  message: string;
+  type?: ToastType;
+  durationMs?: number;
+  action?: ToastAction;
+}
+
 export interface Toast {
   id: string;
   message: string;
   type: ToastType;
+  action?: ToastAction;
 }
 
-// 全局 toast 状态管理（简单的订阅模式）
+const MAX_TOASTS = 3;
+
 let toastState: Toast[] = [];
 const listeners = new Set<(toasts: Toast[]) => void>();
 
@@ -16,18 +30,20 @@ function notify() {
   listeners.forEach((listener) => listener([...toastState]));
 }
 
-function addToast(message: string, type: ToastType = 'info'): string {
+function addToast(message: string, type: ToastType = 'info', durationMs = 3000, action?: ToastAction): string {
   const id = crypto.randomUUID();
-  toastState = [...toastState, { id, message, type }];
+  toastState = [...toastState, { id, message, type, action }];
+  if (toastState.length > MAX_TOASTS) {
+    toastState = toastState.slice(toastState.length - MAX_TOASTS);
+  }
   notify();
-  // 3 秒后自动移除
   setTimeout(() => {
     removeToast(id);
-  }, 3000);
+  }, durationMs);
   return id;
 }
 
-function removeToast(id: string) {
+export function removeToast(id: string) {
   toastState = toastState.filter((t) => t.id !== id);
   notify();
 }
@@ -42,27 +58,19 @@ export function useToast() {
     };
   }, []);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    return addToast(message, type);
-  }, []);
-
   const success = useCallback((message: string) => addToast(message, 'success'), []);
   const error = useCallback((message: string) => addToast(message, 'error'), []);
-  const info = useCallback((message: string) => addToast(message, 'info'), []);
 
   return {
     toasts,
-    showToast,
     success,
     error,
-    info,
-    removeToast,
   };
 }
 
-// 导出独立的函数，可以在组件外部使用
 export const toast = {
   success: (message: string) => addToast(message, 'success'),
   error: (message: string) => addToast(message, 'error'),
-  info: (message: string) => addToast(message, 'info'),
+  show: (options: ToastOptions) =>
+    addToast(options.message, options.type ?? 'info', options.durationMs ?? 3000, options.action),
 };

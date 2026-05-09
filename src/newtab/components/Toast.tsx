@@ -1,5 +1,5 @@
 import { CheckCircle, XCircle, Info } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
+import { useToast, removeToast } from '@/hooks/useToast';
 
 export default function Toast() {
   const { toasts } = useToast();
@@ -15,13 +15,25 @@ export default function Toast() {
             : t.type === 'error'
             ? 'bg-red-600'
             : 'bg-gray-700';
+        const action = t.action;
         return (
           <div
             key={t.id}
             className={`${colorClass} text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 pointer-events-auto min-w-[200px] max-w-md`}
           >
-            <Icon size={16} />
-            <span className="text-sm">{t.message}</span>
+            <Icon size={16} className="shrink-0" />
+            <span className="text-sm flex-1">{t.message}</span>
+            {action && (
+              <button
+                onClick={() => {
+                  action.onClick();
+                  removeToast(t.id);
+                }}
+                className="text-sm font-medium underline hover:no-underline ml-2 shrink-0"
+              >
+                {action.label}
+              </button>
+            )}
           </div>
         );
       })}
