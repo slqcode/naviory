@@ -20,13 +20,13 @@ export async function findLinkByUrl(url: string): Promise<QuickLink | undefined>
 }
 
 export async function createLink(
-  data: Omit<QuickLink, 'id' | 'createdAt' | 'updatedAt'>
+  data: Omit<QuickLink, 'id' | 'createdAt' | 'updatedAt'> & { createdAt?: number }
 ): Promise<QuickLink> {
   const now = Date.now();
   const link: QuickLink = {
     ...data,
     id: generateId(),
-    createdAt: now,
+    createdAt: data.createdAt ?? now,
     updatedAt: now,
   };
 
