@@ -1,9 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Settings, Palette, Search, ExternalLink, Database, Info, Download, Upload, Trash2 } from 'lucide-react';
+import {
+  Settings,
+  Palette,
+  Search,
+  ExternalLink,
+  Database,
+  Info,
+  Download,
+  Upload,
+  Trash2,
+  FileUp,
+  ScanSearch,
+} from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from '@/hooks/useToast';
 import { downloadJson, readJsonFile, validateExportData } from '@/utils/importExport';
+import { parseBookmarksHtml } from '@/utils/bookmarksHtmlImporter';
+import BackupNotice from '@/options/components/BackupNotice';
+import DuplicatesPanel from '@/options/components/DuplicatesPanel';
 import Toast from '@/newtab/components/Toast';
 import ConfirmDialog from '@/newtab/components/ConfirmDialog';
 import type { DefaultSearchEngine, AppSettings } from '@/types';
@@ -19,6 +34,7 @@ export default function OptionsApp() {
     updateSettings,
     exportData,
     importData,
+    importBookmarksHtml,
     clearAllData,
   } = useAppStore();
 
@@ -30,6 +46,7 @@ export default function OptionsApp() {
     danger?: boolean;
     onConfirm: () => void | Promise<void>;
   } | null>(null);
+  const [duplicatesOpen, setDuplicatesOpen] = useState(false);
 
   useEffect(() => {
     initialize();
@@ -108,6 +125,31 @@ export default function OptionsApp() {
     setConfirmOpen(true);
   };
 
+  const handleImportHtml = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'text/html,.html,.htm';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const html = await file.text();
+        const parsed = parseBookmarksHtml(html);
+        if (parsed.links.length === 0) {
+          toast.show({ message: '未找到书签', type: 'info' });
+          return;
+        }
+
+        const { groupsCreated, linksCreated } = await importBookmarksHtml(parsed);
+        toast.success(`已导入 ${linksCreated} 条链接，新增 ${groupsCreated} 个分组`);
+      } catch (err) {
+        toast.error((err as Error).message);
+      }
+    };
+    input.click();
+  };
+
   if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500">
@@ -130,10 +172,13 @@ export default function OptionsApp() {
           <h1 className="text-2xl font-bold">Naviory 设置</h1>
         </header>
 
+        <BackupNotice onExport={handleExport} />
+
         <div className="space-y-4">
           {/* 外观 */}
           <Section icon={<Palette size={18} />} title="外观">
             <RadioRow
+              name="theme"
               label="主题模式"
               value={settings.theme}
               onChange={(v) => setTheme(v as AppSettings['theme'])}
@@ -148,6 +193,7 @@ export default function OptionsApp() {
           {/* 搜索 */}
           <Section icon={<Search size={18} />} title="搜索">
             <RadioRow
+              name="defaultSearchEngine"
               label="默认搜索引擎"
               value={settings.defaultSearchEngine}
               onChange={(v) => setSearchEngine(v as DefaultSearchEngine)}
@@ -165,6 +211,7 @@ export default function OptionsApp() {
           {/* 交互 */}
           <Section icon={<ExternalLink size={18} />} title="交互">
             <RadioRow
+              name="defaultOpenMode"
               label="链接打开方式"
               value={settings.defaultOpenMode}
               onChange={(v) => setOpenMode(v as AppSettings['defaultOpenMode'])}
@@ -185,6 +232,17 @@ export default function OptionsApp() {
               <button onClick={handleImport} className="btn-secondary flex items-center gap-2">
                 <Upload size={14} />
                 导入 JSON
+              </button>
+              <button onClick={handleImportHtml} className="btn-secondary flex items-center gap-2">
+                <FileUp size={14} />
+                导入浏览器书签 (HTML)
+              </button>
+              <button
+                onClick={() => setDuplicatesOpen(true)}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <ScanSearch size={14} />
+                扫描重复链接
               </button>
               <button onClick={handleClearData} className="btn-danger flex items-center gap-2">
                 <Trash2 size={14} />
@@ -215,14 +273,19 @@ export default function OptionsApp() {
           confirmLabel={confirmConfig.confirmLabel}
           danger={confirmConfig.danger}
           onConfirm={async () => {
-            await confirmConfig.onConfirm();
-            setConfirmOpen(false);
+            try {
+              await confirmConfig.onConfirm();
+              setConfirmOpen(false);
+            } catch (err) {
+              toast.error((err as Error).message || '操作失败，请重试');
+            }
           }}
           onCancel={() => setConfirmOpen(false)}
         />
       )}
 
       <Toast />
+      <DuplicatesPanel open={duplicatesOpen} onClose={() => setDuplicatesOpen(false)} />
     </div>
   );
 }
@@ -252,11 +315,13 @@ function Section({
 }
 
 function RadioRow({
+  name,
   label,
   value,
   onChange,
   options,
 }: {
+  name: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -277,6 +342,7 @@ function RadioRow({
           >
             <input
               type="radio"
+              name={name}
               value={opt.value}
               checked={value === opt.value}
               onChange={() => onChange(opt.value)}
