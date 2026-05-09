@@ -38,7 +38,7 @@ export default function GroupSection({
   onDeleteGroup,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { toggleGroupCollapsed, reorderLinks, deleteLink } = useAppStore();
+  const { toggleGroupCollapsed, reorderLinks, deleteLinkWithUndo } = useAppStore();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -124,7 +124,7 @@ export default function GroupSection({
                   key={link.id}
                   link={link}
                   onEdit={() => onEditLink(link)}
-                  onDelete={() => deleteLink(link.id)}
+                  onDelete={() => deleteLinkWithUndo(link.id)}
                 />
               ))}
               <button
