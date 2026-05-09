@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAppStore } from '@/store/useAppStore';
 import { db } from '@/db';
+import { toast } from '@/hooks/useToast';
 
 // 清空数据库并重置 store 状态
 async function resetDb() {
@@ -191,6 +192,174 @@ describe('useAppStore - 链接 URL 去重', () => {
     // 编辑自身时传 excludeId，不应被认为是重复
     const dup = useAppStore.getState().checkUrlDuplicate('https://example.com', link.id);
     expect(dup).toBeNull();
+  });
+});
+
+describe('useAppStore - 链接扩展操作', () => {
+  beforeEach(async () => {
+    await resetDb();
+    await useAppStore.getState().initialize();
+  });
+
+  it('deleteLinkWithUndo 会立即删除并可撤销恢复原始字段', async () => {
+    const showSpy = vi.spyOn(toast, 'show');
+    const state = useAppStore.getState();
+    const group = state.groups.find((g) => g.name === '工作')!;
+
+    const link = await state.addLink({
+      title: 'Undo Link',
+      url: 'https://undo.com',
+      groupId: group.id,
+      sort: 7,
+    });
+
+    const createdAt = link.createdAt;
+    await state.deleteLinkWithUndo(link.id);
+
+    expect(useAppStore.getState().links.find((l) => l.id === link.id)).toBeUndefined();
+    expect(showSpy).toHaveBeenCalledTimes(1);
+
+    const deleteToastCall = showSpy.mock.calls.find(
+      ([options]) =>
+        options.message === '已删除链接' &&
+        options.type === 'info' &&
+        options.action?.label === '撤销'
+    );
+    expect(deleteToastCall).toBeDefined();
+    const toastOptions = deleteToastCall![0];
+    expect(toastOptions.message).toBe('已删除链接');
+    expect(toastOptions.type).toBe('info');
+    expect(toastOptions.durationMs).toBe(10000);
+    expect(toastOptions.action?.label).toBe('撤销');
+
+    await toastOptions.action?.onClick();
+
+    const restored = useAppStore.getState().links.find((l) => l.id === link.id);
+    expect(restored).toBeDefined();
+    expect(restored?.id).toBe(link.id);
+    expect(restored?.createdAt).toBe(createdAt);
+    expect(restored?.sort).toBe(link.sort);
+    expect(restored?.groupId).toBe(group.id);
+
+    showSpy.mockRestore();
+  });
+
+  it('deleteLinkWithUndo 原分组不存在时恢复到临时分组并提示 info', async () => {
+    const showSpy = vi.spyOn(toast, 'show');
+    const successSpy = vi.spyOn(toast, 'success');
+
+    const state = useAppStore.getState();
+    const workGroup = state.groups.find((g) => g.name === '工作')!;
+    const tempGroup = state.groups.find((g) => g.name === '临时')!;
+
+    const link = await state.addLink({
+      title: 'Fallback Link',
+      url: 'https://fallback.com',
+      groupId: workGroup.id,
+      sort: 3,
+    });
+
+    await state.deleteLinkWithUndo(link.id);
+    await state.deleteGroup(workGroup.id, 'cascade');
+
+    const deleteToastCall = showSpy.mock.calls.find(
+      ([options]) =>
+        options.message === '已删除链接' &&
+        options.type === 'info' &&
+        options.action?.label === '撤销'
+    );
+    expect(deleteToastCall).toBeDefined();
+    const toastOptions = deleteToastCall![0];
+    await toastOptions.action?.onClick();
+
+    const restored = useAppStore.getState().links.find((l) => l.id === link.id);
+    expect(restored).toBeDefined();
+    expect(restored?.groupId).toBe(tempGroup.id);
+
+    expect(showSpy).toHaveBeenCalledWith({
+      message: '已恢复到"临时"分组（原分组已删除）',
+      type: 'info',
+    });
+    expect(successSpy).not.toHaveBeenCalledWith('已恢复');
+
+    showSpy.mockRestore();
+    successSpy.mockRestore();
+  });
+
+  it('bulkDeleteLinks 会批量删除并保留未删除链接', async () => {
+    const state = useAppStore.getState();
+    const group = state.groups[0];
+
+    const keep = await state.addLink({
+      title: 'Keep',
+      url: 'https://keep.com',
+      groupId: group.id,
+      sort: 1,
+    });
+    const del1 = await state.addLink({
+      title: 'Delete1',
+      url: 'https://delete1.com',
+      groupId: group.id,
+      sort: 2,
+    });
+    const del2 = await state.addLink({
+      title: 'Delete2',
+      url: 'https://delete2.com',
+      groupId: group.id,
+      sort: 3,
+    });
+
+    await state.bulkDeleteLinks([del1.id, del2.id]);
+
+    const links = useAppStore.getState().links;
+    expect(links.find((l) => l.id === del1.id)).toBeUndefined();
+    expect(links.find((l) => l.id === del2.id)).toBeUndefined();
+    expect(links.find((l) => l.id === keep.id)).toBeDefined();
+  });
+
+  it('importBookmarksHtml 会复用分组、创建缺失分组并保留重复 URL', async () => {
+    const state = useAppStore.getState();
+    const existingGroup = state.groups.find((g) => g.name === '工作')!;
+
+    const imported = {
+      groupNames: ['工作', '新分组'],
+      links: [
+        {
+          groupName: '工作',
+          title: 'Old URL A',
+          url: 'https://dup.com',
+          createdAt: 1700000000000,
+        },
+        {
+          groupName: '工作',
+          title: 'Old URL B',
+          url: 'https://dup.com',
+        },
+        {
+          groupName: '新分组',
+          title: 'New Group Link',
+          url: 'https://new-group.com',
+          createdAt: 1700000000100,
+        },
+      ],
+    };
+
+    const result = await state.importBookmarksHtml(imported);
+
+    expect(result).toEqual({ groupsCreated: 1, linksCreated: 3 });
+
+    const after = useAppStore.getState();
+    const reusedGroup = after.groups.find((g) => g.name === '工作');
+    const createdGroup = after.groups.find((g) => g.name === '新分组');
+
+    expect(reusedGroup?.id).toBe(existingGroup.id);
+    expect(createdGroup).toBeDefined();
+
+    const duplicatedLinks = after.links.filter((l) => l.url === 'https://dup.com');
+    expect(duplicatedLinks).toHaveLength(2);
+
+    const newGroupLink = after.links.find((l) => l.url === 'https://new-group.com');
+    expect(newGroupLink?.groupId).toBe(createdGroup?.id);
   });
 });
 

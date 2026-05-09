@@ -6,6 +6,8 @@ import * as linkRepo from '@/db/repositories/linkRepo';
 import * as settingsRepo from '@/db/repositories/settingsRepo';
 import { db } from '@/db';
 import { DEFAULT_SETTINGS } from '@/db/schema';
+import { toast } from '@/hooks/useToast';
+import type { ParsedBookmarks } from '@/utils/bookmarksHtmlImporter';
 
 interface AppState {
   // Data state
@@ -30,8 +32,13 @@ interface AppState {
   addLink: (data: Omit<QuickLink, 'id' | 'createdAt' | 'updatedAt'>) => Promise<QuickLink>;
   updateLink: (id: string, data: Partial<Omit<QuickLink, 'id' | 'createdAt'>>) => Promise<void>;
   deleteLink: (id: string) => Promise<void>;
+  deleteLinkWithUndo: (id: string) => Promise<void>;
+  bulkDeleteLinks: (ids: string[]) => Promise<void>;
   reorderLinks: (groupId: string, orderedIds: string[]) => Promise<void>;
   checkUrlDuplicate: (url: string, excludeId?: string) => QuickLink | null;
+  importBookmarksHtml: (
+    parsed: ParsedBookmarks
+  ) => Promise<{ groupsCreated: number; linksCreated: number }>;
 
   // Settings actions
   updateSettings: (data: Partial<Omit<AppSettings, 'id'>>) => Promise<void>;
@@ -195,6 +202,70 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  deleteLinkWithUndo: async (id) => {
+    const snapshot = get().links.find((link) => link.id === id);
+    if (!snapshot) return;
+
+    await get().deleteLink(id);
+
+    const restore = async () => {
+      set({ loading: true, error: null });
+      try {
+        const originalGroup = get().groups.find((group) => group.id === snapshot.groupId);
+        const tempGroup = get().groups.find((group) => group.name === '临时');
+        const targetGroup = originalGroup ?? tempGroup;
+
+        if (!targetGroup) {
+          toast.error('无法恢复：目标分组和"临时"分组均不存在');
+          set({ loading: false });
+          return;
+        }
+
+        await db.links.put({
+          ...snapshot,
+          groupId: targetGroup.id,
+          updatedAt: Date.now(),
+        });
+        const links = await linkRepo.getAllLinks();
+        set({ links, loading: false });
+
+        if (!originalGroup && tempGroup && targetGroup.id === tempGroup.id) {
+          toast.show({
+            message: '已恢复到"临时"分组（原分组已删除）',
+            type: 'info',
+          });
+        } else {
+          toast.success('已恢复');
+        }
+      } catch (e) {
+        set({ error: (e as Error).message, loading: false });
+        throw e;
+      }
+    };
+
+    toast.show({
+      message: '已删除链接',
+      type: 'info',
+      durationMs: 10000,
+      action: {
+        label: '撤销',
+        onClick: restore,
+      },
+    });
+  },
+
+  bulkDeleteLinks: async (ids) => {
+    set({ loading: true, error: null });
+    try {
+      await db.links.bulkDelete(ids);
+      const links = await linkRepo.getAllLinks();
+      set({ links, loading: false });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+      throw e;
+    }
+  },
+
   reorderLinks: async (groupId, orderedIds) => {
     set({ loading: true, error: null });
     try {
@@ -272,6 +343,69 @@ export const useAppStore = create<AppState>((set, get) => ({
         settingsRepo.getSettings(),
       ]);
       set({ groups, links, settings, loading: false });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+      throw e;
+    }
+  },
+
+  importBookmarksHtml: async (parsed) => {
+    set({ loading: true, error: null });
+    try {
+      let groupsCreated = 0;
+      let linksCreated = 0;
+
+      await db.transaction('rw', [db.groups, db.links], async () => {
+        const groups = await groupRepo.getAllGroups();
+        const groupByName = new Map(groups.map((group) => [group.name, group]));
+
+        const currentMaxSort = groups.reduce((max, group) => Math.max(max, group.sort), 0);
+        let nextGroupSort = currentMaxSort + 1;
+
+        for (const groupName of parsed.groupNames) {
+          if (!groupByName.has(groupName)) {
+            const created = await groupRepo.createGroup({
+              name: groupName,
+              sort: nextGroupSort,
+              collapsed: false,
+            });
+            groupByName.set(groupName, created);
+            groupsCreated += 1;
+            nextGroupSort += 1;
+          }
+        }
+
+        const allLinks = await linkRepo.getAllLinks();
+        const nextSortByGroupId = new Map<string, number>();
+        for (const link of allLinks) {
+          const current = nextSortByGroupId.get(link.groupId) ?? 1;
+          nextSortByGroupId.set(link.groupId, Math.max(current, link.sort + 1));
+        }
+
+        for (const item of parsed.links) {
+          const group = groupByName.get(item.groupName);
+          if (!group) continue;
+
+          const nextSort = nextSortByGroupId.get(group.id) ?? 1;
+          await linkRepo.createLink({
+            title: item.title,
+            url: item.url,
+            groupId: group.id,
+            sort: nextSort,
+            ...(item.createdAt !== undefined ? { createdAt: item.createdAt } : {}),
+          });
+          nextSortByGroupId.set(group.id, nextSort + 1);
+          linksCreated += 1;
+        }
+      });
+
+      const [nextGroups, nextLinks] = await Promise.all([
+        groupRepo.getAllGroups(),
+        linkRepo.getAllLinks(),
+      ]);
+      set({ groups: nextGroups, links: nextLinks, loading: false });
+
+      return { groupsCreated, linksCreated };
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
       throw e;
