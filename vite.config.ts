@@ -10,6 +10,7 @@ export default defineConfig({
       manifest: './public/manifest.json',
       additionalInputs: [
         'src/newtab/index.html',
+        'src/newtab/style-lab/index.html',
         'src/popup/index.html',
         'src/options/index.html',
       ],
