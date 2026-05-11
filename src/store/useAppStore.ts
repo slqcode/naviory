@@ -302,8 +302,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ---------------------------------------------------------------------------
   exportData: async () => {
     const { groups, links, settings } = get();
+    let appVersion: string | undefined;
+    try {
+      if (typeof chrome !== 'undefined' && chrome.runtime?.getManifest) {
+        appVersion = chrome.runtime.getManifest().version;
+      }
+    } catch {
+      appVersion = undefined;
+    }
     return {
       version: 1,
+      ...(appVersion ? { appVersion } : {}),
       exportedAt: Date.now(),
       groups,
       links,

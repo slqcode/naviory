@@ -40,6 +40,7 @@ export interface AppSettings {
 
 export interface ExportData {
   version: number;
+  appVersion?: string;
   exportedAt: number;
   groups: LinkGroup[];
   links: QuickLink[];
