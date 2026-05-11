@@ -21,6 +21,7 @@ import BackupNotice from '@/options/components/BackupNotice';
 import DuplicatesPanel from '@/options/components/DuplicatesPanel';
 import Toast from '@/newtab/components/Toast';
 import ConfirmDialog from '@/newtab/components/ConfirmDialog';
+import TypedConfirmDialog from '@/newtab/components/TypedConfirmDialog';
 import type { DefaultSearchEngine, AppSettings } from '@/types';
 
 export default function OptionsApp() {
@@ -48,6 +49,8 @@ export default function OptionsApp() {
   } | null>(null);
   const [confirmSubmitting, setConfirmSubmitting] = useState(false);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
+  const [clearDataOpen, setClearDataOpen] = useState(false);
+  const [clearDataSubmitting, setClearDataSubmitting] = useState(false);
 
   const openConfirmDialog = (config: NonNullable<typeof confirmConfig>) => {
     if (confirmOpen) return;
@@ -120,16 +123,22 @@ export default function OptionsApp() {
   };
 
   const handleClearData = () => {
-    openConfirmDialog({
-      title: '清空全部数据',
-      message: '此操作将永久删除所有分组、链接和设置，并重置为默认状态。此操作不可恢复，确定继续吗？',
-      confirmLabel: '确认清空',
-      danger: true,
-      onConfirm: async () => {
-        await clearAllData();
-        toast.success('数据已清空');
-      },
-    });
+    if (clearDataOpen) return;
+    setClearDataOpen(true);
+  };
+
+  const handleClearDataConfirm = async () => {
+    if (clearDataSubmitting) return;
+    setClearDataSubmitting(true);
+    try {
+      await clearAllData();
+      toast.success('数据已清空');
+      setClearDataOpen(false);
+    } catch (err) {
+      toast.error((err as Error).message || '清空失败，请重试');
+    } finally {
+      setClearDataSubmitting(false);
+    }
   };
 
   const handleImportHtml = () => {
@@ -300,6 +309,20 @@ export default function OptionsApp() {
 
       <Toast />
       <DuplicatesPanel open={duplicatesOpen} onClose={() => setDuplicatesOpen(false)} />
+      {clearDataOpen && (
+        <TypedConfirmDialog
+          title="清空全部数据"
+          message="此操作将永久删除所有分组、链接和设置，并重置为默认状态。此操作不可恢复。"
+          requireText="DELETE"
+          confirmLabel="确认清空"
+          danger
+          onConfirm={handleClearDataConfirm}
+          onCancel={() => {
+            if (clearDataSubmitting) return;
+            setClearDataOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
