@@ -98,21 +98,22 @@ export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Prop
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="card w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold">{link ? '编辑链接' : '新增链接'}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="panel-elevated w-full max-w-md">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="font-mono text-sm font-semibold text-text-primary">
+            <span className="text-text-muted">$</span> {link ? 'edit link' : 'new link'}
+          </h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="rounded p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">标题 *</label>
+        <form onSubmit={handleSubmit} className="space-y-3 px-4 py-4">
+          <Field label="title" required>
             <input
               type="text"
               value={title}
@@ -120,24 +121,25 @@ export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Prop
               className="input"
               required
               maxLength={100}
+              autoFocus
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">URL *</label>
+          <Field label="url" required>
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
-              className="input"
+              className="input-mono"
               required
             />
-            {urlError && <p className="mt-1 text-xs text-red-600">{urlError}</p>}
-          </div>
+            {urlError && (
+              <p className="mt-1 font-mono text-[11px] text-danger">! {urlError}</p>
+            )}
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">描述</label>
+          <Field label="description">
             <input
               type="text"
               value={description}
@@ -145,21 +147,19 @@ export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Prop
               className="input"
               maxLength={200}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">标签（逗号分隔）</label>
+          <Field label="tags (comma separated)">
             <input
               type="text"
               value={tagsText}
               onChange={(e) => setTagsText(e.target.value)}
               placeholder="tag1, tag2"
-              className="input"
+              className="input-mono"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">分组 *</label>
+          <Field label="group" required>
             <select
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
@@ -172,10 +172,9 @@ export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Prop
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">打开方式</label>
+          <Field label="open mode">
             <select
               value={openMode}
               onChange={(e) =>
@@ -187,7 +186,7 @@ export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Prop
               <option value="current">当前页</option>
               <option value="new-tab">新标签页</option>
             </select>
-          </div>
+          </Field>
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary">
@@ -200,5 +199,25 @@ export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Prop
         </form>
       </div>
     </div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block font-mono text-[11px] uppercase tracking-wider text-text-muted">
+        {label}
+        {required && <span className="ml-1 text-accent">*</span>}
+      </span>
+      {children}
+    </label>
   );
 }

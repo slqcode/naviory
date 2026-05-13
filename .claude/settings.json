@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(node -e \"const {JSDOM}=require\\('jsdom'\\); const fs=require\\('fs'\\); const html=fs.readFileSync\\('/home/slq/my/naviory/tests/fixtures/bookmarks-sample.html','utf8'\\); const doc=new JSDOM\\(html\\).window.document; const root=doc.querySelector\\('dl'\\); console.log\\('root children', [...root.children].map\\(n=>n.tagName+':'+n.textContent.trim\\(\\)\\)\\); console.log\\('desc dt count', root.querySelectorAll\\('dt'\\).length\\); console.log\\('dt list', [...root.querySelectorAll\\('dt'\\)].map\\(\\(n,i\\)=>i+':'+n.textContent.trim\\(\\).slice\\(0,50\\)\\)\\);\")"
+    ]
+  }
+}

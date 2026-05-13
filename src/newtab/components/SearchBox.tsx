@@ -1,13 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { parseSearchInput, buildSearchUrl, SEARCH_ENGINES } from '@/utils/search';
 import { getFaviconUrl, getInitialLetter } from '@/utils/favicon';
 import type { QuickLink } from '@/types';
 
+const PREFIX_HINTS: Array<{ prefix: string; label: string }> = [
+  { prefix: 'g', label: 'Google' },
+  { prefix: 'b', label: 'Bing' },
+  { prefix: 'bd', label: '百度' },
+  { prefix: 'gh', label: 'GitHub' },
+  { prefix: 'npm', label: 'npm' },
+];
+
 export default function SearchBox() {
   const [query, setQuery] = useState('');
-  const [showResults, setShowResults] = useState(false);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const links = useAppStore((s) => s.links);
@@ -16,20 +23,20 @@ export default function SearchBox() {
 
   const { hasPrefix, engine, query: cleanQuery } = parseSearchInput(query);
 
-  // 本地链接搜索（无前缀时）
-  const matchedLinks: QuickLink[] = hasPrefix || !cleanQuery
-    ? []
-    : links
-        .filter((l) => {
-          const q = cleanQuery.toLowerCase();
-          return (
-            l.title.toLowerCase().includes(q) ||
-            l.url.toLowerCase().includes(q) ||
-            (l.description?.toLowerCase().includes(q) ?? false) ||
-            (l.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
-          );
-        })
-        .slice(0, 8);
+  const matchedLinks: QuickLink[] =
+    hasPrefix || !cleanQuery
+      ? []
+      : links
+          .filter((l) => {
+            const q = cleanQuery.toLowerCase();
+            return (
+              l.title.toLowerCase().includes(q) ||
+              l.url.toLowerCase().includes(q) ||
+              (l.description?.toLowerCase().includes(q) ?? false) ||
+              (l.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
+            );
+          })
+          .slice(0, 8);
 
   const openLink = (link: QuickLink) => {
     const mode = link.openMode ?? defaultOpenMode;
@@ -58,57 +65,118 @@ export default function SearchBox() {
     inputRef.current?.focus();
   }, []);
 
+  // 全局 "/" 聚焦 + Esc 失焦/清空
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === '/') {
+        const target = e.target as HTMLElement | null;
+        const tag = target?.tagName;
+        const editable = target?.isContentEditable;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || editable) return;
+        e.preventDefault();
+        inputRef.current?.focus();
+        return;
+      }
+      if (e.key === 'Escape' && document.activeElement === inputRef.current) {
+        setQuery('');
+        inputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const showPanel = focused && (matchedLinks.length > 0 || (hasPrefix && engine) || !query);
+
   return (
     <div className="relative">
       <form onSubmit={handleSubmit}>
-        <div className="relative">
-          <Search
-            size={20}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-          />
+        <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2.5 font-mono text-sm focus-within:border-accent/50 focus-within:ring-1 focus-within:ring-accent/30 transition-colors">
+          <span className="select-none text-accent">&gt;</span>
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setShowResults(true)}
-            onBlur={() => setTimeout(() => setShowResults(false), 200)}
-            placeholder="搜索本地链接或输入 URL，支持 g/b/bd/gh/npm 前缀"
-            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-gray-100 shadow-sm"
+            onFocus={() => setFocused(true)}
+            onBlur={() => setTimeout(() => setFocused(false), 150)}
+            placeholder="Search links or type command..."
+            className="flex-1 bg-transparent text-text-primary placeholder-text-muted outline-none"
+            autoComplete="off"
+            spellCheck={false}
           />
+          <span className="kbd hidden sm:inline-flex">/</span>
         </div>
       </form>
 
-      {/* 搜索结果下拉 */}
-      {showResults && matchedLinks.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 card overflow-hidden z-10">
-          {matchedLinks.map((link) => (
-            <button
-              key={link.id}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                openLink(link);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
-            >
-              <LinkIcon url={link.url} title={link.title} icon={link.icon} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{link.title}</div>
-                <div className="text-xs text-gray-500 truncate">{link.url}</div>
+      {showPanel && (
+        <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-md border border-border bg-surface-elevated shadow-md">
+          {matchedLinks.length > 0 && (
+            <div className="border-b border-border">
+              <div className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                # matches ({matchedLinks.length})
               </div>
-            </button>
-          ))}
-        </div>
-      )}
+              <ul className="py-1">
+                {matchedLinks.map((link) => (
+                  <li key={link.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        openLink(link);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-hover"
+                    >
+                      <LinkIcon url={link.url} title={link.title} icon={link.icon} />
+                      <span className="flex-1 truncate text-sm text-text-primary">{link.title}</span>
+                      <span className="ml-2 shrink-0 truncate font-mono text-[11px] text-text-muted max-w-[40%]">
+                        {safeHost(link.url)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-      {/* 前缀提示 */}
-      {hasPrefix && engine && (
-        <div className="absolute top-full left-0 right-0 mt-2 card px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
-          按 Enter 使用 {engine} 搜索: {cleanQuery || '...'}
+          {hasPrefix && engine && (
+            <div className="px-3 py-2 font-mono text-xs text-text-secondary">
+              <span className="text-accent">↵</span> search{' '}
+              <span className="text-text-primary">{engine}</span>{' '}
+              <span className="text-text-muted">{cleanQuery || '...'}</span>
+            </div>
+          )}
+
+          {!hasPrefix && (
+            <div className="px-3 py-2">
+              <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                # prefixes
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {PREFIX_HINTS.map((h) => (
+                  <span
+                    key={h.prefix}
+                    className="font-mono text-[11px] text-text-secondary"
+                  >
+                    <span className="kbd mr-1">{h.prefix}</span>
+                    {h.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function safeHost(url: string) {
+  try {
+    return new URL(url).host.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
 }
 
 function LinkIcon({ url, title, icon }: { url: string; title: string; icon?: string }) {
@@ -116,7 +184,7 @@ function LinkIcon({ url, title, icon }: { url: string; title: string; icon?: str
   const src = icon || getFaviconUrl(url);
   if (!src || failed) {
     return (
-      <div className="w-6 h-6 rounded flex items-center justify-center bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-xs font-semibold shrink-0">
+      <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-accent/10 font-mono text-[10px] font-semibold text-accent">
         {getInitialLetter(title)}
       </div>
     );
@@ -126,7 +194,7 @@ function LinkIcon({ url, title, icon }: { url: string; title: string; icon?: str
       src={src}
       alt=""
       onError={() => setFailed(true)}
-      className="w-6 h-6 rounded shrink-0"
+      className="h-4 w-4 shrink-0 rounded"
     />
   );
 }

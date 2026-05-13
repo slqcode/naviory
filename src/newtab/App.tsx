@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, Plus, Download, Upload } from 'lucide-react';
+import { Settings, Plus, Download, Upload, Terminal } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from '@/hooks/useToast';
@@ -11,6 +11,7 @@ import GroupEditorDialog from './components/GroupEditorDialog';
 import ConfirmDialog from './components/ConfirmDialog';
 import Toast from './components/Toast';
 import EmptyState from './components/EmptyState';
+import StatusBar from './components/StatusBar';
 import type { LinkGroup, QuickLink } from '@/types';
 
 export default function App() {
@@ -130,42 +131,56 @@ export default function App() {
 
   if (!initialized && loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">加载中...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background text-text-muted font-mono text-sm">
+        $ loading workspace...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      {/* 顶部工具栏 */}
-      <header className="flex justify-end p-4">
-        <button
-          onClick={handleOpenOptions}
-          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
-          title="设置"
-        >
-          <Settings size={20} />
-        </button>
+    <div className="min-h-screen flex flex-col bg-background text-text-primary">
+      {/* Header */}
+      <header className="border-b border-border bg-surface/60">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
+          <div className="flex items-center gap-2">
+            <Terminal size={16} className="text-accent" />
+            <span className="font-mono text-sm font-semibold tracking-tight text-text-primary">
+              naviory
+            </span>
+            <span className="font-mono text-[11px] text-text-muted">workspace</span>
+          </div>
+
+          <div className="ml-auto flex items-center gap-1">
+            <IconButton onClick={handleImport} title="导入 JSON">
+              <Upload size={15} />
+            </IconButton>
+            <IconButton onClick={handleExport} title="导出 JSON">
+              <Download size={15} />
+            </IconButton>
+            <IconButton onClick={handleOpenOptions} title="设置">
+              <Settings size={15} />
+            </IconButton>
+          </div>
+        </div>
       </header>
 
-      {/* 搜索框 */}
-      <div className="max-w-2xl mx-auto px-4 mb-8">
+      {/* Search */}
+      <div className="mx-auto w-full max-w-3xl px-4 pt-6">
         <SearchBox />
       </div>
 
-      {/* 分组列表 */}
-      <main className="max-w-7xl mx-auto px-4 pb-8">
+      {/* Groups */}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         {groups.length === 0 ? (
           <EmptyState
-            title="还没有分组"
-            description="点击下方按钮，创建第一个分组"
-            actionLabel="创建分组"
+            title="# no workspace groups"
+            description="create your first group to start organizing links"
+            actionLabel="create group"
             onAction={handleAddGroup}
           />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {groups.map((group) => (
                 <GroupSection
                   key={group.id}
@@ -181,38 +196,20 @@ export default function App() {
               ))}
             </div>
 
-            <div className="mt-8 flex justify-center gap-2">
-              <button onClick={handleAddGroup} className="btn-secondary flex items-center gap-2">
-                <Plus size={16} />
-                新增分组
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={handleAddGroup}
+                className="btn-secondary flex items-center gap-2 font-mono"
+              >
+                <Plus size={14} />
+                new group
               </button>
             </div>
           </>
         )}
-
-        {/* 底部统计/导入导出 */}
-        <footer className="mt-12 flex items-center justify-between text-sm text-gray-500">
-          <div>
-            共 {links.length} 个链接 · {groups.length} 个分组
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleImport}
-              className="flex items-center gap-1 hover:text-indigo-600"
-            >
-              <Upload size={14} />
-              导入
-            </button>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-1 hover:text-indigo-600"
-            >
-              <Download size={14} />
-              导出
-            </button>
-          </div>
-        </footer>
       </main>
+
+      <StatusBar linksCount={links.length} groupsCount={groups.length} />
 
       {/* Dialogs */}
       {linkEditorOpen && (
@@ -245,5 +242,26 @@ export default function App() {
 
       <Toast />
     </div>
+  );
+}
+
+function IconButton({
+  children,
+  onClick,
+  title,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  title: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="rounded-md p-1.5 text-text-secondary hover:bg-surface-hover hover:text-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+    >
+      {children}
+    </button>
   );
 }

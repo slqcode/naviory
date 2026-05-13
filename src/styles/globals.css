@@ -3,17 +3,53 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light theme (sidekick, dark is default visual) */
+    --color-background: 250 250 250;
+    --color-surface: 255 255 255;
+    --color-surface-elevated: 255 255 255;
+    --color-surface-hover: 244 244 245;
+    --color-border: 228 228 231;
+    --color-border-strong: 212 212 216;
+    --color-text-primary: 24 24 27;
+    --color-text-secondary: 82 82 91;
+    --color-text-muted: 113 113 122;
+    --color-accent: 16 185 129;
+    --color-accent-soft: 16 185 129;
+    --color-accent-soft-alpha: 0.1;
+    --color-danger: 220 38 38;
+    --color-success: 16 185 129;
+    --color-warning: 217 119 6;
+  }
+
+  .dark {
+    /* Dark theme — primary visual */
+    --color-background: 10 10 11;
+    --color-surface: 24 24 27;
+    --color-surface-elevated: 39 39 42;
+    --color-surface-hover: 39 39 42;
+    --color-border: 39 39 42;
+    --color-border-strong: 63 63 70;
+    --color-text-primary: 244 244 245;
+    --color-text-secondary: 161 161 170;
+    --color-text-muted: 113 113 122;
+    --color-accent: 52 211 153;
+    --color-accent-soft: 16 185 129;
+    --color-accent-soft-alpha: 0.12;
+    --color-danger: 248 113 113;
+    --color-success: 52 211 153;
+    --color-warning: 251 191 36;
+  }
+
   html {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
       'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
-    @apply antialiased;
+    @apply bg-background text-text-primary antialiased;
   }
 
-  /* 自定义滚动条 */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -22,48 +58,62 @@
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-700 rounded;
+    @apply bg-border-strong rounded;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400 dark:bg-gray-600;
+    @apply bg-text-muted;
   }
 }
 
 @layer components {
-  /* 通用卡片样式 */
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm;
-    @apply border border-gray-200 dark:border-gray-700;
+    @apply bg-surface border border-border rounded-lg;
   }
 
-  /* 通用按钮样式 */
   .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors;
+    @apply px-3 py-1.5 rounded-md text-sm font-medium transition-colors;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-primary {
-    @apply btn bg-indigo-600 text-white hover:bg-indigo-700;
-    @apply dark:bg-indigo-500 dark:hover:bg-indigo-600;
+    @apply btn bg-accent text-zinc-950 hover:bg-accent/90;
   }
 
   .btn-secondary {
-    @apply btn bg-gray-100 text-gray-900 hover:bg-gray-200;
-    @apply dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600;
+    @apply btn bg-surface-elevated text-text-primary border border-border hover:border-border-strong hover:bg-surface-hover;
   }
 
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700;
-    @apply dark:bg-red-500 dark:hover:bg-red-600;
+    @apply btn bg-danger/10 text-danger border border-danger/40 hover:bg-danger/20;
   }
 
-  /* 通用输入框样式 */
+  .btn-ghost {
+    @apply btn bg-transparent text-text-secondary hover:bg-surface-hover hover:text-text-primary;
+  }
+
   .input {
-    @apply w-full px-3 py-2 rounded-md;
-    @apply bg-white dark:bg-gray-800;
-    @apply border border-gray-300 dark:border-gray-600;
-    @apply text-gray-900 dark:text-gray-100;
-    @apply placeholder-gray-400 dark:placeholder-gray-500;
-    @apply focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent;
+    @apply w-full px-2.5 py-1.5 rounded-md text-sm;
+    @apply bg-surface border border-border text-text-primary placeholder-text-muted;
+    @apply focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30;
+  }
+
+  .input-mono {
+    @apply input font-mono;
+  }
+
+  .panel {
+    @apply bg-surface border border-border rounded-lg;
+  }
+
+  .panel-elevated {
+    @apply bg-surface-elevated border border-border-strong rounded-lg shadow-md;
+  }
+
+  .kbd {
+    @apply font-mono text-[11px] leading-none text-text-muted border border-border rounded px-1.5 py-0.5;
+  }
+
+  .tag {
+    @apply font-mono text-[10px] leading-none px-1.5 py-0.5 rounded bg-accent/10 text-accent;
   }
 }

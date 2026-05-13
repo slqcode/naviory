@@ -18,7 +18,8 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
   const [color, setColor] = useState(group?.color ?? 'indigo');
 
   const previewStyle = getGroupColorStyle(color);
-  const PreviewIcon = GROUP_ICONS.find((i) => i.name === icon)?.component ?? GROUP_ICONS[0].component;
+  const PreviewIcon =
+    GROUP_ICONS.find((i) => i.name === icon)?.component ?? GROUP_ICONS[0].component;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,34 +43,43 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="card w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-          <h2 className="text-lg font-semibold">{group ? '编辑分组' : '新增分组'}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="panel-elevated flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="font-mono text-sm font-semibold text-text-primary">
+            <span className="text-text-muted">$</span> {group ? 'edit group' : 'new group'}
+          </h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="rounded p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* 预览区 */}
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${previewStyle.bgClass}`}>
-              <PreviewIcon size={20} className={previewStyle.textClass} />
+        <form onSubmit={handleSubmit} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+          {/* preview */}
+          <div className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-md ${previewStyle.bgClass}`}
+            >
+              <PreviewIcon size={16} className={previewStyle.textClass} />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">
-                {name.trim() || '分组预览'}
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-mono text-sm text-text-primary">
+                <span className="text-text-muted"># </span>
+                {name.trim() || 'group-preview'}
               </div>
-              <div className="text-xs text-gray-500">{icon} · {color}</div>
+              <div className="font-mono text-[11px] text-text-muted">
+                icon:{icon} · color:{color}
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">分组名称 *</label>
+          <label className="block">
+            <span className="mb-1 block font-mono text-[11px] uppercase tracking-wider text-text-muted">
+              name <span className="ml-1 text-accent">*</span>
+            </span>
             <input
               type="text"
               value={name}
@@ -79,12 +89,13 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
               maxLength={20}
               autoFocus
             />
-          </div>
+          </label>
 
-          {/* 图标选择器 */}
           <div>
-            <label className="block text-sm font-medium mb-2">图标</label>
-            <div className="grid grid-cols-8 gap-2">
+            <span className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-text-muted">
+              icon
+            </span>
+            <div className="grid grid-cols-8 gap-1.5">
               {GROUP_ICONS.map(({ name: iconName, component: IconComp }) => {
                 const selected = icon === iconName;
                 return (
@@ -93,22 +104,23 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
                     type="button"
                     onClick={() => setIcon(iconName)}
                     title={iconName}
-                    className={`aspect-square flex items-center justify-center rounded-md border transition-colors ${
+                    className={`flex aspect-square items-center justify-center rounded-md border transition-colors ${
                       selected
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-500'
+                        ? 'border-accent/50 bg-accent/10 text-accent'
+                        : 'border-border text-text-secondary hover:border-border-strong hover:text-text-primary'
                     }`}
                   >
-                    <IconComp size={18} />
+                    <IconComp size={15} />
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* 颜色选择器 */}
           <div>
-            <label className="block text-sm font-medium mb-2">颜色</label>
+            <span className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-text-muted">
+              color
+            </span>
             <div className="flex flex-wrap gap-2">
               {GROUP_COLORS.map((c) => {
                 const selected = color === c.key;
@@ -118,27 +130,27 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
                     type="button"
                     onClick={() => setColor(c.key)}
                     title={c.key}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform ${
-                      selected ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800 scale-110' : 'hover:scale-105'
+                    className={`flex h-7 w-7 items-center justify-center rounded-md transition-transform ${
+                      selected ? 'scale-110 ring-2 ring-border-strong ring-offset-2 ring-offset-surface-elevated' : 'hover:scale-105'
                     }`}
                     style={{ backgroundColor: c.hex }}
                   >
-                    {selected && <Check size={14} className="text-white" />}
+                    {selected && <Check size={12} className="text-white" />}
                   </button>
                 );
               })}
             </div>
           </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">
-              取消
-            </button>
-            <button type="submit" className="btn-primary">
-              保存
-            </button>
-          </div>
         </form>
+
+        <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
+          <button type="button" onClick={onClose} className="btn-secondary">
+            取消
+          </button>
+          <button type="button" onClick={handleSubmit} className="btn-primary">
+            保存
+          </button>
+        </div>
       </div>
     </div>
   );

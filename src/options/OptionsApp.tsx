@@ -11,6 +11,7 @@ import {
   Trash2,
   FileUp,
   ScanSearch,
+  AlertOctagon,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -168,8 +169,8 @@ export default function OptionsApp() {
 
   if (!initialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        加载中...
+      <div className="flex min-h-screen items-center justify-center bg-background font-mono text-sm text-text-muted">
+        $ loading settings...
       </div>
     );
   }
@@ -180,102 +181,114 @@ export default function OptionsApp() {
       : '0.1.0';
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* 标题 */}
-        <header className="flex items-center gap-2 mb-6">
-          <Settings size={24} className="text-indigo-600" />
-          <h1 className="text-2xl font-bold">Naviory 设置</h1>
+    <div className="min-h-screen bg-background text-text-primary">
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <header className="mb-6 flex items-center gap-2">
+          <Settings size={18} className="text-accent" />
+          <h1 className="font-mono text-lg font-semibold">
+            <span className="text-text-muted">$</span> naviory settings
+          </h1>
         </header>
 
         <BackupNotice onExport={handleExport} />
 
-        <div className="space-y-4">
-          {/* 外观 */}
-          <Section icon={<Palette size={18} />} title="外观">
+        <div className="space-y-3">
+          <Section icon={<Palette size={14} />} title="appearance">
             <RadioRow
               name="theme"
-              label="主题模式"
+              label="theme"
               value={settings.theme}
               onChange={(v) => setTheme(v as AppSettings['theme'])}
               options={[
-                { value: 'system', label: '跟随系统' },
-                { value: 'light', label: '浅色' },
-                { value: 'dark', label: '深色' },
+                { value: 'system', label: 'system' },
+                { value: 'light', label: 'light' },
+                { value: 'dark', label: 'dark' },
               ]}
             />
           </Section>
 
-          {/* 搜索 */}
-          <Section icon={<Search size={18} />} title="搜索">
+          <Section icon={<Search size={14} />} title="search">
             <RadioRow
               name="defaultSearchEngine"
-              label="默认搜索引擎"
+              label="default engine"
               value={settings.defaultSearchEngine}
               onChange={(v) => setSearchEngine(v as DefaultSearchEngine)}
               options={[
                 { value: 'google', label: 'Google' },
                 { value: 'bing', label: 'Bing' },
-                { value: 'baidu', label: '百度' },
+                { value: 'baidu', label: 'Baidu' },
               ]}
             />
-            <p className="mt-2 text-xs text-gray-500">
-              提示：搜索框支持前缀：g（Google）、b（Bing）、bd（百度）、gh（GitHub）、npm（npm）
+            <p className="mt-2 font-mono text-[11px] text-text-muted">
+              # prefixes: g / b / bd / gh / npm
             </p>
           </Section>
 
-          {/* 交互 */}
-          <Section icon={<ExternalLink size={18} />} title="交互">
+          <Section icon={<ExternalLink size={14} />} title="interaction">
             <RadioRow
               name="defaultOpenMode"
-              label="链接打开方式"
+              label="open mode"
               value={settings.defaultOpenMode}
               onChange={(v) => setOpenMode(v as AppSettings['defaultOpenMode'])}
               options={[
-                { value: 'current', label: '当前页' },
-                { value: 'new-tab', label: '新标签页' },
+                { value: 'current', label: 'current tab' },
+                { value: 'new-tab', label: 'new tab' },
               ]}
             />
           </Section>
 
-          {/* 数据管理 */}
-          <Section icon={<Database size={18} />} title="数据管理">
+          <Section icon={<Database size={14} />} title="data">
             <div className="flex flex-wrap gap-2">
               <button onClick={handleExport} className="btn-secondary flex items-center gap-2">
-                <Download size={14} />
-                导出 JSON
+                <Download size={13} />
+                export JSON
               </button>
               <button onClick={handleImport} className="btn-secondary flex items-center gap-2">
-                <Upload size={14} />
-                导入 JSON
+                <Upload size={13} />
+                import JSON
               </button>
               <button onClick={handleImportHtml} className="btn-secondary flex items-center gap-2">
-                <FileUp size={14} />
-                导入浏览器书签 (HTML)
+                <FileUp size={13} />
+                import bookmarks (HTML)
               </button>
               <button
                 onClick={() => setDuplicatesOpen(true)}
                 className="btn-secondary flex items-center gap-2"
               >
-                <ScanSearch size={14} />
-                扫描重复链接
-              </button>
-              <button onClick={handleClearData} className="btn-danger flex items-center gap-2">
-                <Trash2 size={14} />
-                清空全部数据
+                <ScanSearch size={13} />
+                scan duplicates
               </button>
             </div>
-            <p className="mt-3 text-xs text-gray-500">
-              当前：{groups.length} 个分组，{links.length} 个链接
+            <p className="mt-3 font-mono text-[11px] text-text-muted">
+              # {groups.length} groups · {links.length} links
             </p>
           </Section>
 
-          {/* 关于 */}
-          <Section icon={<Info size={18} />} title="关于">
-            <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <div>版本：{version}</div>
+          {/* Danger Zone */}
+          <section className="rounded-lg border border-danger/40 bg-danger/5 p-4">
+            <header className="mb-2 flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-wider text-danger">
+              <AlertOctagon size={13} />
+              danger zone
+            </header>
+            <p className="mb-3 font-mono text-[11px] text-text-secondary">
+              这些操作不可恢复，请先备份数据。
+            </p>
+            <button
+              onClick={handleClearData}
+              className="btn-danger flex items-center gap-2"
+            >
+              <Trash2 size={13} />
+              clear all data
+            </button>
+          </section>
+
+          <Section icon={<Info size={14} />} title="about">
+            <div className="space-y-1 font-mono text-xs text-text-secondary">
               <div>
-                Naviory 是一个自用的新标签页工作台浏览器扩展，用于管理常用入口。
+                <span className="text-text-muted">version</span> v{version}
+              </div>
+              <div className="text-text-muted">
+                Naviory · local-first new tab workspace for developers.
               </div>
             </div>
           </Section>
@@ -311,10 +324,10 @@ export default function OptionsApp() {
       <DuplicatesPanel open={duplicatesOpen} onClose={() => setDuplicatesOpen(false)} />
       {clearDataOpen && (
         <TypedConfirmDialog
-          title="清空全部数据"
+          title="clear all data"
           message="此操作将永久删除所有分组、链接和设置，并重置为默认状态。此操作不可恢复。"
           requireText="DELETE"
-          confirmLabel="确认清空"
+          confirmLabel="clear"
           danger
           onConfirm={handleClearDataConfirm}
           onCancel={() => {
@@ -327,10 +340,6 @@ export default function OptionsApp() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// 辅助组件
-// ---------------------------------------------------------------------------
-
 function Section({
   icon,
   title,
@@ -341,10 +350,10 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="card p-4">
-      <header className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
-        {icon}
-        {title}
+    <section className="panel px-4 py-3">
+      <header className="mb-3 flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <span className="text-accent">{icon}</span>
+        <span># {title}</span>
       </header>
       {children}
     </section>
@@ -366,15 +375,17 @@ function RadioRow({
 }) {
   return (
     <fieldset>
-      <legend className="text-sm mb-2 text-gray-600 dark:text-gray-400">{label}</legend>
-      <div className="flex flex-wrap gap-2">
+      <legend className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-text-muted">
+        {label}
+      </legend>
+      <div className="flex flex-wrap gap-1.5">
         {options.map((opt) => (
           <label
             key={opt.value}
-            className={`px-3 py-1.5 rounded-md border cursor-pointer text-sm ${
+            className={`cursor-pointer rounded-md border px-3 py-1 font-mono text-xs transition-colors ${
               value === opt.value
-                ? 'bg-indigo-600 border-indigo-600 text-white'
-                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-indigo-400'
+                ? 'border-accent/50 bg-accent/10 text-accent'
+                : 'border-border bg-surface text-text-secondary hover:border-border-strong hover:text-text-primary'
             }`}
           >
             <input

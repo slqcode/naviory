@@ -11,7 +11,7 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
   arrayMove,
-  rectSortingStrategy,
+  verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -58,85 +58,121 @@ export default function GroupSection({
   const colorStyle = getGroupColorStyle(group.color);
 
   return (
-    <section className="card p-4">
-      {/* 分组头部 */}
-      <header className="flex items-center justify-between mb-3">
+    <section className="panel group/section overflow-hidden">
+      {/* Header */}
+      <header className="flex items-center gap-1 border-b border-border px-3 py-2">
         <button
           onClick={() => toggleGroupCollapsed(group.id)}
-          className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 min-w-0"
+          className="flex min-w-0 flex-1 items-center gap-2 text-left text-text-primary hover:text-accent"
         >
-          {group.collapsed ? <ChevronRight size={16} className="shrink-0" /> : <ChevronDown size={16} className="shrink-0" />}
-          <span className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${colorStyle.bgClass}`}>
-            <GroupIcon size={14} className={colorStyle.textClass} />
+          {group.collapsed ? (
+            <ChevronRight size={14} className="shrink-0 text-text-muted" />
+          ) : (
+            <ChevronDown size={14} className="shrink-0 text-text-muted" />
+          )}
+          <span
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${colorStyle.bgClass}`}
+          >
+            <GroupIcon size={12} className={colorStyle.textClass} />
           </span>
-          <span className="truncate">{group.name}</span>
-          <span className="text-xs text-gray-500 shrink-0">({links.length})</span>
+          <span className="truncate font-mono text-sm">
+            <span className="text-text-muted"># </span>
+            {group.name}
+          </span>
+          <span className="ml-1 shrink-0 font-mono text-[11px] text-text-muted">
+            ({links.length})
+          </span>
         </button>
 
-        <div className="relative">
+        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/section:opacity-100">
           <button
-            onClick={() => setMenuOpen((v) => !v)}
-            onBlur={() => setTimeout(() => setMenuOpen(false), 200)}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
+            onClick={onAddLink}
+            title="添加链接"
+            className="rounded p-1 text-text-muted hover:bg-surface-hover hover:text-accent"
           >
-            <MoreVertical size={16} />
+            <Plus size={13} />
           </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-32 card overflow-hidden z-10">
-              <button
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onEditGroup();
-                  setMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <Pencil size={14} />
-                编辑
-              </button>
-              <button
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onDeleteGroup();
-                  setMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-              >
-                <Trash2 size={14} />
-                删除
-              </button>
-            </div>
-          )}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              onBlur={() => setTimeout(() => setMenuOpen(false), 200)}
+              className="rounded p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary"
+              title="更多"
+            >
+              <MoreVertical size={13} />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full z-10 mt-1 w-32 overflow-hidden rounded-md border border-border-strong bg-surface-elevated shadow-md">
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onEditGroup();
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-text-primary hover:bg-surface-hover"
+                >
+                  <Pencil size={12} />
+                  编辑
+                </button>
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onDeleteGroup();
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-danger hover:bg-danger/10"
+                >
+                  <Trash2 size={12} />
+                  删除
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* 链接列表 */}
+      {/* Body */}
       {!group.collapsed && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={links.map((l) => l.id)} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-2 gap-2">
-              {links.map((link) => (
-                <SortableLink
-                  key={link.id}
-                  link={link}
-                  onEdit={() => onEditLink(link)}
-                  onDelete={() => deleteLinkWithUndo(link.id)}
-                />
-              ))}
+        <div className="p-2">
+          {links.length === 0 ? (
+            <button
+              onClick={onAddLink}
+              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-2 py-2 font-mono text-xs text-text-muted hover:border-accent/40 hover:text-accent"
+            >
+              <Plus size={12} />
+              add link
+            </button>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={links.map((l) => l.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="flex flex-col gap-0.5">
+                  {links.map((link) => (
+                    <SortableLink
+                      key={link.id}
+                      link={link}
+                      onEdit={() => onEditLink(link)}
+                      onDelete={() => deleteLinkWithUndo(link.id)}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
               <button
                 onClick={onAddLink}
-                className="flex items-center justify-center gap-1 py-3 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 text-gray-400 hover:border-indigo-400 hover:text-indigo-600"
+                className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-2 py-1.5 font-mono text-xs text-text-muted hover:border-accent/40 hover:text-accent"
               >
-                <Plus size={16} />
-                <span className="text-sm">添加</span>
+                <Plus size={12} />
+                add link
               </button>
-            </div>
-          </SortableContext>
-        </DndContext>
+            </DndContext>
+          )}
+        </div>
       )}
     </section>
   );
@@ -161,8 +197,8 @@ function SortableLink({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <li ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <LinkCard link={link} onEdit={onEdit} onDelete={onDelete} />
-    </div>
+    </li>
   );
 }

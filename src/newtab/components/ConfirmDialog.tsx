@@ -20,23 +20,23 @@ export default function ConfirmDialog({
   onCancel,
 }: Props) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="card w-full max-w-sm">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="panel-elevated w-full max-w-sm">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="font-mono text-sm font-semibold text-text-primary">
+            <span className="text-text-muted">$</span> {title}
+          </h2>
           <button
             onClick={onCancel}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="rounded p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
-        <div className="p-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">
-            {message}
-          </p>
+        <div className="px-4 py-4">
+          <p className="whitespace-pre-line text-sm text-text-secondary">{message}</p>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
           <button onClick={onCancel} className="btn-secondary">
             {cancelLabel}
           </button>

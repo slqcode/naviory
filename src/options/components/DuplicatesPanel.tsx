@@ -24,7 +24,10 @@ export default function DuplicatesPanel({ open, onClose }: Props) {
       })),
     [links]
   );
-  const groupNameById = useMemo(() => new Map(groups.map((group) => [group.id, group.name])), [groups]);
+  const groupNameById = useMemo(
+    () => new Map(groups.map((group) => [group.id, group.name])),
+    [groups]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -76,59 +79,65 @@ export default function DuplicatesPanel({ open, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="card w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold">重复链接扫描</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="panel-elevated flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="font-mono text-sm font-semibold text-text-primary">
+            <span className="text-text-muted">$</span> scan duplicates
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="rounded p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
           {duplicateGroups.length === 0 ? (
-            <div className="flex min-h-[220px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">
-              没有发现重复链接
+            <div className="flex min-h-[220px] items-center justify-center font-mono text-sm text-text-muted">
+              # no duplicates found
             </div>
           ) : (
             duplicateGroups.map((group) => (
               <section
                 key={group.normalizedUrl}
-                className="rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                className="rounded-md border border-border bg-surface p-3"
               >
-                <p className="mb-3 text-xs text-gray-500 break-all">{group.normalizedUrl}</p>
-                <div className="space-y-2">
+                <p className="mb-2 break-all font-mono text-[11px] text-text-muted">
+                  {group.normalizedUrl}
+                </p>
+                <div className="space-y-1">
                   {group.links.map((link, index) => {
                     const isNewest = index === 0;
                     return (
                       <label
                         key={link.id}
-                        className="flex items-start gap-3 rounded-md px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/60 cursor-pointer"
+                        className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-1.5 hover:bg-surface-hover"
                       >
                         <input
                           type="checkbox"
                           checked={selectedToDelete.has(link.id)}
                           onChange={() => toggleSelection(link.id)}
-                          className="mt-1"
+                          className="mt-1 accent-accent"
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-sm text-text-primary">
                               {link.title}
                             </span>
                             {isNewest && (
-                              <span className="shrink-0 rounded bg-green-100 px-1.5 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                                最新
+                              <span className="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] text-accent">
+                                newest
                               </span>
                             )}
                           </div>
-                          <div className="mt-1 text-xs text-gray-500 break-all">{link.url}</div>
-                          <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                            {groupNameById.get(link.groupId) ?? '未知分组'} ·{' '}
+                          <div className="mt-0.5 break-all font-mono text-[11px] text-text-muted">
+                            {link.url}
+                          </div>
+                          <div className="mt-0.5 font-mono text-[10px] text-text-muted">
+                            {groupNameById.get(link.groupId) ?? '?'} ·{' '}
                             {new Date(link.createdAt).toLocaleString()}
                           </div>
                         </div>
@@ -141,11 +150,11 @@ export default function DuplicatesPanel({ open, onClose }: Props) {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+          <span className="font-mono text-[11px] text-text-muted">
             {duplicateGroups.length === 0
-              ? '没有可清理的重复链接'
-              : `共 ${duplicateGroups.length} 组重复，已选 ${selectedToDelete.size} 条待删除`}
+              ? '# nothing to clean'
+              : `# ${duplicateGroups.length} duplicate groups · ${selectedToDelete.size} selected`}
           </span>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="btn-secondary">
@@ -156,9 +165,9 @@ export default function DuplicatesPanel({ open, onClose }: Props) {
                 type="button"
                 onClick={() => setConfirmOpen(true)}
                 disabled={selectedToDelete.size === 0}
-                className="btn-danger flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-danger flex items-center gap-1"
               >
-                <Trash2 size={14} />
+                <Trash2 size={13} />
                 删除选中
               </button>
             )}

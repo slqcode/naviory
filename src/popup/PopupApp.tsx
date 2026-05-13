@@ -20,7 +20,6 @@ export default function PopupApp() {
   const [loading, setLoading] = useState(false);
   const [duplicate, setDuplicate] = useState<QuickLink | null>(null);
 
-  // 初始化 store + 读取当前 tab
   useEffect(() => {
     initialize();
 
@@ -36,14 +35,12 @@ export default function PopupApp() {
     }
   }, [initialize]);
 
-  // 初始化 groupId
   useEffect(() => {
     if (!groupId && groups.length > 0) {
       setGroupId(groups[0].id);
     }
   }, [groups, groupId]);
 
-  // 检查 URL 重复
   useEffect(() => {
     if (!url || !isValidUrl(url)) {
       setDuplicate(null);
@@ -53,8 +50,8 @@ export default function PopupApp() {
     setDuplicate(checkUrlDuplicate(normalized));
   }, [url, links, checkUrlDuplicate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    e?.preventDefault?.();
     if (!title.trim()) {
       toast.error('标题不能为空');
       return;
@@ -93,7 +90,6 @@ export default function PopupApp() {
         icon: favicon || undefined,
       });
       toast.success('保存成功');
-      // 短暂延迟让用户看到提示
       setTimeout(() => window.close(), 500);
     } catch (err) {
       toast.error((err as Error).message);
@@ -103,45 +99,43 @@ export default function PopupApp() {
 
   if (!initialized) {
     return (
-      <div className="p-4 text-center text-sm text-gray-500">加载中...</div>
+      <div className="bg-background p-4 text-center font-mono text-sm text-text-muted">
+        $ loading...
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-[450px]">
-      {/* 顶部标题栏 */}
-      <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex min-h-[450px] flex-col bg-background text-text-primary">
+      <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <Bookmark size={18} className="text-indigo-600" />
-          <h1 className="font-semibold">保存当前页面</h1>
+          <Bookmark size={14} className="text-accent" />
+          <h1 className="font-mono text-sm font-semibold">
+            <span className="text-text-muted">$</span> save link
+          </h1>
         </div>
         <button
           onClick={() => window.close()}
-          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          className="rounded p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
       </header>
 
-      {/* 预览：favicon + url */}
       {favicon && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-2 border-b border-border bg-surface/60 px-4 py-2 font-mono text-[11px] text-text-muted">
           <img
             src={favicon}
             alt=""
-            className="w-4 h-4 rounded"
+            className="h-3.5 w-3.5 rounded"
             onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
           />
           <span className="truncate">{url}</span>
         </div>
       )}
 
-      {/* 表单 */}
-      <form onSubmit={handleSubmit} className="flex-1 p-4 space-y-3">
-        <div>
-          <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">
-            标题 *
-          </label>
+      <form onSubmit={handleSubmit} className="flex-1 space-y-3 px-4 py-4">
+        <PopupField label="title" required>
           <input
             type="text"
             value={title}
@@ -150,31 +144,25 @@ export default function PopupApp() {
             required
             maxLength={100}
           />
-        </div>
+        </PopupField>
 
-        <div>
-          <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">
-            URL *
-          </label>
+        <PopupField label="url" required>
           <input
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="input text-xs"
+            className="input-mono text-[11px]"
             required
           />
           {duplicate && (
-            <p className="mt-1 text-xs text-red-600">
-              URL 已存在于"{groups.find((g) => g.id === duplicate.groupId)?.name ?? '其他'}"
-              分组（{duplicate.title}）
+            <p className="mt-1 font-mono text-[11px] text-danger">
+              ! exists in "{groups.find((g) => g.id === duplicate.groupId)?.name ?? '?'}":{' '}
+              {duplicate.title}
             </p>
           )}
-        </div>
+        </PopupField>
 
-        <div>
-          <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">
-            描述
-          </label>
+        <PopupField label="description">
           <input
             type="text"
             value={description}
@@ -182,12 +170,9 @@ export default function PopupApp() {
             className="input"
             maxLength={200}
           />
-        </div>
+        </PopupField>
 
-        <div>
-          <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">
-            分组 *
-          </label>
+        <PopupField label="group" required>
           <select
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}
@@ -200,24 +185,20 @@ export default function PopupApp() {
               </option>
             ))}
           </select>
-        </div>
+        </PopupField>
 
-        <div>
-          <label className="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">
-            标签（逗号分隔）
-          </label>
+        <PopupField label="tags (comma separated)">
           <input
             type="text"
             value={tagsText}
             onChange={(e) => setTagsText(e.target.value)}
             placeholder="tag1, tag2"
-            className="input"
+            className="input-mono"
           />
-        </div>
+        </PopupField>
       </form>
 
-      {/* 底部操作 */}
-      <footer className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+      <footer className="flex justify-end gap-2 border-t border-border px-4 py-3">
         <button
           type="button"
           onClick={() => window.close()}
@@ -232,11 +213,31 @@ export default function PopupApp() {
           className="btn-primary"
           disabled={loading || !!duplicate}
         >
-          {loading ? '保存中...' : '保存'}
+          {loading ? 'saving...' : 'save'}
         </button>
       </footer>
 
       <Toast />
     </div>
+  );
+}
+
+function PopupField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-text-muted">
+        {label}
+        {required && <span className="ml-1 text-accent">*</span>}
+      </span>
+      {children}
+    </label>
   );
 }

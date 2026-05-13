@@ -1,5 +1,3 @@
-import { FolderOpen } from 'lucide-react';
-
 interface Props {
   title: string;
   description: string;
@@ -9,12 +7,13 @@ interface Props {
 
 export default function EmptyState({ title, description, actionLabel, onAction }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <FolderOpen size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
-      <h3 className="text-lg font-medium mb-1">{title}</h3>
-      <p className="text-sm text-gray-500 mb-4">{description}</p>
+    <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-md border border-dashed border-border bg-surface/40 px-6 py-16 text-center">
+      <div className="mb-3 font-mono text-xs text-text-muted">~/naviory</div>
+      <h3 className="mb-1 font-mono text-base text-text-primary">{title}</h3>
+      <p className="mb-5 max-w-sm font-mono text-sm text-text-muted">{description}</p>
       {actionLabel && onAction && (
-        <button onClick={onAction} className="btn-primary">
+        <button onClick={onAction} className="btn-primary font-mono">
+          <span className="mr-1 text-text-muted">$</span>
           {actionLabel}
         </button>
       )}

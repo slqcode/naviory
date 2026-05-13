@@ -14,6 +14,7 @@ export default function LinkCard({ link, onEdit, onDelete }: Props) {
   const [iconFailed, setIconFailed] = useState(false);
   const defaultOpenMode = useAppStore((s) => s.settings.defaultOpenMode);
   const iconUrl = link.icon || getFaviconUrl(link.url);
+  const host = safeHost(link.url);
 
   const handleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('[data-action]')) return;
@@ -27,8 +28,16 @@ export default function LinkCard({ link, onEdit, onDelete }: Props) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
-      className="group relative flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick(e as unknown as React.MouseEvent);
+        }
+      }}
+      className="group/link relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-surface-hover focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
       title={link.description || link.url}
     >
       {iconUrl && !iconFailed ? (
@@ -36,29 +45,33 @@ export default function LinkCard({ link, onEdit, onDelete }: Props) {
           src={iconUrl}
           alt=""
           onError={() => setIconFailed(true)}
-          className="w-6 h-6 rounded shrink-0"
+          className="h-4 w-4 shrink-0 rounded"
         />
       ) : (
-        <div className="w-6 h-6 rounded flex items-center justify-center bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 text-xs font-semibold shrink-0">
+        <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-accent/10 font-mono text-[10px] font-semibold text-accent">
           {getInitialLetter(link.title)}
         </div>
       )}
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">
-          {link.title}
-        </div>
-      </div>
-      <div className="hidden group-hover:flex items-center gap-0.5 absolute right-1 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded shadow">
+
+      <span className="min-w-0 flex-1 truncate text-sm text-text-primary">
+        {link.title}
+      </span>
+
+      <span className="ml-auto hidden shrink-0 truncate font-mono text-[11px] text-text-muted md:inline max-w-[45%] group-hover/link:opacity-0">
+        {host}
+      </span>
+
+      <div className="absolute right-1.5 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-md border border-border bg-surface-elevated px-0.5 py-0.5 group-hover/link:flex">
         <button
           data-action="edit"
           onClick={(e) => {
             e.stopPropagation();
             onEdit();
           }}
-          className="p-1 hover:text-indigo-600 text-gray-500"
+          className="rounded p-1 text-text-muted hover:text-accent"
           title="编辑"
         >
-          <Pencil size={12} />
+          <Pencil size={11} />
         </button>
         <button
           data-action="delete"
@@ -66,12 +79,20 @@ export default function LinkCard({ link, onEdit, onDelete }: Props) {
             e.stopPropagation();
             onDelete();
           }}
-          className="p-1 hover:text-red-600 text-gray-500"
+          className="rounded p-1 text-text-muted hover:text-danger"
           title="删除"
         >
-          <Trash2 size={12} />
+          <Trash2 size={11} />
         </button>
       </div>
     </div>
   );
+}
+
+function safeHost(url: string) {
+  try {
+    return new URL(url).host.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
 }
