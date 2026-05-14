@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Background: rounded square, zinc-950 -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="#0a0a0b"/>
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="none" stroke="#27272a" stroke-width="2"/>
+
+  <!-- Title bar separator -->
+  <line x1="16" y1="36" x2="112" y2="36" stroke="#27272a" stroke-width="2"/>
+
+  <!-- Three traffic-light dots -->
+  <circle cx="24" cy="22" r="4" fill="#f87171"/>
+  <circle cx="38" cy="22" r="4" fill="#fbbf24"/>
+  <circle cx="52" cy="22" r="4" fill="#34d399"/>
+
+  <!-- Prompt: > _ in emerald monospace -->
+  <g fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="32,60 52,76 32,92"/>
+  </g>
+  <rect x="60" y="86" width="36" height="8" rx="2" fill="#34d399"/>
+</svg>
