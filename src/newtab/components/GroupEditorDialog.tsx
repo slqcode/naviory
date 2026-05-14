@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from '@/hooks/useToast';
@@ -16,6 +16,17 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
   const [name, setName] = useState(group?.name ?? '');
   const [icon, setIcon] = useState(group?.icon ?? 'Bookmark');
   const [color, setColor] = useState(group?.color ?? 'indigo');
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const previewStyle = getGroupColorStyle(color);
   const PreviewIcon =
@@ -137,13 +148,28 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
           </Field>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
-          <button type="button" onClick={onClose} className="btn-secondary">
-            取消
-          </button>
-          <button type="submit" className="btn-primary">
-            保存
-          </button>
+        <div className="flex items-center justify-between border-t border-border px-4 py-3">
+          <span className="font-mono text-[11px] text-text-muted">
+            {group ? '# editing' : '# new'}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="group/btn flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 font-mono text-xs text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+            >
+              cancel
+              <span className="kbd">esc</span>
+            </button>
+            <button
+              type="submit"
+              className="group/btn flex items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 font-mono text-xs text-accent transition-colors hover:border-accent hover:bg-accent/20 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+            >
+              <span className="text-accent/60">$</span>
+              save
+              <span className="kbd border-accent/40 text-accent/80">↵</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>
