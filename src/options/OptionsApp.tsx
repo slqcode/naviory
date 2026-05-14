@@ -12,6 +12,7 @@ import {
   FileUp,
   ScanSearch,
   AlertOctagon,
+  ChevronRight,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -238,26 +239,31 @@ export default function OptionsApp() {
           </Section>
 
           <Section icon={<Database size={14} />} title="data">
-            <div className="flex flex-wrap gap-2">
-              <button onClick={handleExport} className="btn-secondary flex items-center gap-2">
-                <Download size={13} />
-                export JSON
-              </button>
-              <button onClick={handleImport} className="btn-secondary flex items-center gap-2">
-                <Upload size={13} />
-                import JSON
-              </button>
-              <button onClick={handleImportHtml} className="btn-secondary flex items-center gap-2">
-                <FileUp size={13} />
-                import bookmarks (HTML)
-              </button>
-              <button
+            <div className="divide-y divide-border overflow-hidden rounded-md border border-border">
+              <CommandRow
+                icon={<Download size={13} />}
+                command="data:export"
+                hint="导出全部数据为 JSON"
+                onClick={handleExport}
+              />
+              <CommandRow
+                icon={<Upload size={13} />}
+                command="data:import"
+                hint="从 JSON 覆盖导入"
+                onClick={handleImport}
+              />
+              <CommandRow
+                icon={<FileUp size={13} />}
+                command="data:import-html"
+                hint="导入浏览器书签 HTML"
+                onClick={handleImportHtml}
+              />
+              <CommandRow
+                icon={<ScanSearch size={13} />}
+                command="data:scan-duplicates"
+                hint="扫描并清理重复链接"
                 onClick={() => setDuplicatesOpen(true)}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <ScanSearch size={13} />
-                scan duplicates
-              </button>
+              />
             </div>
             <p className="mt-3 font-mono text-[11px] text-text-muted">
               # {groups.length} groups · {links.length} links
@@ -265,21 +271,27 @@ export default function OptionsApp() {
           </Section>
 
           {/* Danger Zone */}
-          <section className="rounded-lg border border-danger/40 bg-danger/5 p-4">
-            <header className="mb-2 flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-wider text-danger">
+          <section className="rounded-lg border border-danger/40 bg-danger/5">
+            <header className="flex items-center gap-2 border-b border-danger/30 px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-danger">
               <AlertOctagon size={13} />
-              danger zone
+              # danger zone
             </header>
-            <p className="mb-3 font-mono text-[11px] text-text-secondary">
-              这些操作不可恢复，请先备份数据。
-            </p>
-            <button
-              onClick={handleClearData}
-              className="btn-danger flex items-center gap-2"
-            >
-              <Trash2 size={13} />
-              clear all data
-            </button>
+            <div className="px-4 py-3">
+              <p className="mb-3 font-mono text-[11px] text-text-secondary">
+                ! 这些操作不可恢复，请先备份数据
+              </p>
+              <button
+                onClick={handleClearData}
+                className="group flex w-full items-center gap-3 rounded-md border border-danger/40 bg-surface px-3 py-2 text-left font-mono text-xs text-danger transition-colors hover:border-danger hover:bg-danger/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-danger"
+              >
+                <span className="text-danger/60">$</span>
+                <Trash2 size={13} className="shrink-0" />
+                <span className="flex-1">data:clear-all</span>
+                <span className="shrink-0 text-text-muted group-hover:text-danger">
+                  permanent delete →
+                </span>
+              </button>
+            </div>
           </section>
 
           <Section icon={<Info size={14} />} title="about">
@@ -401,5 +413,38 @@ function RadioRow({
         ))}
       </div>
     </fieldset>
+  );
+}
+
+function CommandRow({
+  icon,
+  command,
+  hint,
+  onClick,
+}: {
+  icon: ReactNode;
+  command: string;
+  hint?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-3 bg-surface px-3 py-2 text-left font-mono text-xs transition-colors hover:bg-surface-hover focus:outline-none focus-visible:bg-surface-hover focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/40"
+    >
+      <span className="text-text-muted group-hover:text-accent">$</span>
+      <span className="shrink-0 text-text-secondary group-hover:text-accent">{icon}</span>
+      <span className="text-text-primary">{command}</span>
+      {hint && (
+        <span className="ml-auto hidden truncate text-[11px] text-text-muted sm:inline">
+          {hint}
+        </span>
+      )}
+      <ChevronRight
+        size={12}
+        className="shrink-0 text-text-muted opacity-0 transition-opacity group-hover:opacity-100"
+      />
+    </button>
   );
 }
