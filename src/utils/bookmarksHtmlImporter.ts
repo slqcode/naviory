@@ -10,6 +10,24 @@ export interface ParsedBookmarks {
   links: ParsedBookmarkLink[];
 }
 
+// Chrome / Edge 导出的根容器名（中英文 / 不同浏览器版本）。这些不应被当作分组。
+const ROOT_CONTAINERS = new Set([
+  '书签栏',
+  '收藏栏',
+  '其他书签',
+  '移动设备书签',
+  'Bookmarks Bar',
+  'Bookmarks bar',
+  'Favorites Bar',
+  'Favorites bar',
+  'Other Bookmarks',
+  'Other bookmarks',
+  'Mobile Bookmarks',
+  'Mobile bookmarks',
+]);
+
+const FALLBACK_GROUP_NAME = '未分组';
+
 export function parseBookmarksHtml(html: string): ParsedBookmarks {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const rootDl = doc.querySelector('dl');
@@ -62,7 +80,8 @@ export function parseBookmarksHtml(html: string): ParsedBookmarks {
           const addDate = anchor.getAttribute('add_date');
           const parsedDate = addDate ? Number.parseInt(addDate, 10) : Number.NaN;
           const createdAt = Number.isFinite(parsedDate) ? parsedDate * 1000 : undefined;
-          const groupName = topLevelFolderName ?? '书签栏';
+          // 没有归属用户分组的链接（书签栏直接子链接）放入「未分组」
+          const groupName = topLevelFolderName ?? FALLBACK_GROUP_NAME;
 
           addGroupName(groupName);
           links.push({
@@ -78,8 +97,12 @@ export function parseBookmarksHtml(html: string): ParsedBookmarks {
       if (h3) {
         const nestedDl = findNestedDl(dt);
         if (nestedDl) {
-          const folderName = h3.textContent?.trim() || '书签栏';
-          walkDl(nestedDl, topLevelFolderName ?? folderName);
+          const folderName = h3.textContent?.trim() || '';
+          // 跳过 Chrome 根容器（书签栏/其他书签/移动设备书签），让用户在它们下创建的
+          // 直接子文件夹（工作/AI/项目...）成为 Naviory 分组。
+          const isRootContainer = !folderName || ROOT_CONTAINERS.has(folderName);
+          const nextTopLevel = topLevelFolderName ?? (isRootContainer ? null : folderName);
+          walkDl(nestedDl, nextTopLevel);
         }
       }
     }

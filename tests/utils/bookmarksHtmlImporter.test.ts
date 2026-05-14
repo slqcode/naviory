@@ -3,21 +3,32 @@ import sampleHtml from '../fixtures/bookmarks-sample.html?raw';
 import { parseBookmarksHtml } from '@/utils/bookmarksHtmlImporter';
 
 describe('parseBookmarksHtml', () => {
-  it('parses top-level folders into group names', () => {
+  it('treats user folders under 书签栏 / 其他书签 as top-level groups', () => {
     const result = parseBookmarksHtml(sampleHtml);
     expect(result.groupNames).toContain('工作');
     expect(result.groupNames).toContain('AI');
-    expect(result.groupNames).toContain('书签栏');
   });
 
-  it('assigns orphan links (no folder) to 书签栏', () => {
+  it('does NOT create a group for Chrome root containers (书签栏 / 其他书签)', () => {
+    const result = parseBookmarksHtml(sampleHtml);
+    expect(result.groupNames).not.toContain('书签栏');
+    expect(result.groupNames).not.toContain('其他书签');
+    expect(result.groupNames).not.toContain('Bookmarks Bar');
+    expect(result.groupNames).not.toContain('Other Bookmarks');
+  });
+
+  it('puts orphan links (directly under a root container) into 未分组', () => {
     const result = parseBookmarksHtml(sampleHtml);
     const orphan = result.links.find((l) => l.url === 'https://orphan.example.com');
     expect(orphan).toBeDefined();
-    expect(orphan!.groupName).toBe('书签栏');
+    expect(orphan!.groupName).toBe('未分组');
+
+    const otherTopLevel = result.links.find((l) => l.url === 'https://other.example.com');
+    expect(otherTopLevel).toBeDefined();
+    expect(otherTopLevel!.groupName).toBe('未分组');
   });
 
-  it('flattens nested folders to top-level parent', () => {
+  it('flattens deeply nested folders to the top user-level parent', () => {
     const result = parseBookmarksHtml(sampleHtml);
     const backend = result.links.find((l) => l.url === 'https://backend.example.com');
     expect(backend).toBeDefined();
@@ -70,6 +81,6 @@ describe('parseBookmarksHtml', () => {
 
   it('returns correct total link count (valid http(s) only)', () => {
     const result = parseBookmarksHtml(sampleHtml);
-    expect(result.links).toHaveLength(6);
+    expect(result.links).toHaveLength(7);
   });
 });
