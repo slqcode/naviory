@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { normalizeUrl, isValidUrl } from '@/utils/url';
 import { toast } from '@/hooks/useToast';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { DialogCancelButton, DialogConfirmButton, DialogFooter } from './DialogButtons';
 import type { QuickLink } from '@/types';
 
 interface Props {
@@ -13,6 +15,8 @@ interface Props {
 
 export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Props) {
   const { groups, links, addLink, updateLink, checkUrlDuplicate } = useAppStore();
+
+  useEscapeKey(onClose);
 
   const [title, setTitle] = useState(link?.title ?? '');
   const [url, setUrl] = useState(link?.url ?? '');
@@ -112,7 +116,8 @@ export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Prop
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 px-4 py-4">
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-3 px-4 py-4">
           <Field label="title" required>
             <input
               type="text"
@@ -187,15 +192,12 @@ export default function LinkEditorDialog({ link, defaultGroupId, onClose }: Prop
               <option value="new-tab">新标签页</option>
             </select>
           </Field>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">
-              取消
-            </button>
-            <button type="submit" className="btn-primary">
-              保存
-            </button>
           </div>
+
+          <DialogFooter hint={link ? '# editing' : '# new'}>
+            <DialogCancelButton onClick={onClose} />
+            <DialogConfirmButton type="submit" label="save" />
+          </DialogFooter>
         </form>
       </div>
     </div>

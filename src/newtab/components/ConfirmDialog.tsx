@@ -1,4 +1,6 @@
 import { X } from 'lucide-react';
+import { DialogCancelButton, DialogConfirmButton, DialogFooter } from './DialogButtons';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface Props {
   title: string;
@@ -14,11 +16,13 @@ export default function ConfirmDialog({
   title,
   message,
   danger,
-  confirmLabel = '确定',
-  cancelLabel = '取消',
+  confirmLabel = 'confirm',
+  cancelLabel = 'cancel',
   onConfirm,
   onCancel,
 }: Props) {
+  useEscapeKey(onCancel);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="panel-elevated w-full max-w-sm">
@@ -36,14 +40,15 @@ export default function ConfirmDialog({
         <div className="px-4 py-4">
           <p className="whitespace-pre-line text-sm text-text-secondary">{message}</p>
         </div>
-        <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
-          <button onClick={onCancel} className="btn-secondary">
-            {cancelLabel}
-          </button>
-          <button onClick={onConfirm} className={danger ? 'btn-danger' : 'btn-primary'}>
-            {confirmLabel}
-          </button>
-        </div>
+        <DialogFooter hint={danger ? '! irreversible' : '# confirm'}>
+          <DialogCancelButton onClick={onCancel} label={cancelLabel} />
+          <DialogConfirmButton
+            type="button"
+            onClick={() => onConfirm()}
+            label={confirmLabel}
+            danger={danger}
+          />
+        </DialogFooter>
       </div>
     </div>
   );

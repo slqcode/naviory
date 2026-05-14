@@ -87,7 +87,7 @@ export default function App() {
   const handleDeleteGroup = (group: LinkGroup) => {
     const groupLinks = links.filter((l) => l.groupId === group.id);
     setConfirmConfig({
-      title: '删除分组',
+      title: 'delete group',
       message:
         groupLinks.length === 0
           ? `确定删除分组"${group.name}"吗？`
@@ -121,7 +121,7 @@ export default function App() {
           return;
         }
         setConfirmConfig({
-          title: '导入数据',
+          title: 'import data',
           message: '导入数据会覆盖当前所有数据，确定继续吗？',
           danger: true,
           onConfirm: async () => {

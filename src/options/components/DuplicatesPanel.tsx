@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { findDuplicateGroups } from '@/utils/duplicateFinder';
 import { toast } from '@/hooks/useToast';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import ConfirmDialog from '@/newtab/components/ConfirmDialog';
+import {
+  DialogCancelButton,
+  DialogConfirmButton,
+} from '@/newtab/components/DialogButtons';
 
 interface Props {
   open: boolean;
@@ -48,6 +53,8 @@ export default function DuplicatesPanel({ open, onClose }: Props) {
       wasOpenRef.current = true;
     }
   }, [open, duplicateGroups]);
+
+  useEscapeKey(onClose, open && !confirmOpen);
 
   if (!open) {
     return null;
@@ -156,20 +163,17 @@ export default function DuplicatesPanel({ open, onClose }: Props) {
               ? '# nothing to clean'
               : `# ${duplicateGroups.length} duplicate groups · ${selectedToDelete.size} selected`}
           </span>
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="btn-secondary">
-              关闭
-            </button>
+          <div className="flex items-center gap-2">
+            <DialogCancelButton onClick={onClose} label="close" />
             {duplicateGroups.length > 0 && (
-              <button
+              <DialogConfirmButton
                 type="button"
                 onClick={() => setConfirmOpen(true)}
                 disabled={selectedToDelete.size === 0}
-                className="btn-danger flex items-center gap-1"
-              >
-                <Trash2 size={13} />
-                删除选中
-              </button>
+                label="delete selected"
+                danger
+                showEnter={false}
+              />
             )}
           </div>
         </div>
@@ -177,9 +181,9 @@ export default function DuplicatesPanel({ open, onClose }: Props) {
 
       {confirmOpen && (
         <ConfirmDialog
-          title="确认删除"
+          title="confirm delete"
           message={`确定删除选中的 ${selectedToDelete.size} 条重复链接吗？此操作不可恢复。`}
-          confirmLabel="确认删除"
+          confirmLabel="delete"
           danger
           onConfirm={handleConfirmDelete}
           onCancel={() => setConfirmOpen(false)}

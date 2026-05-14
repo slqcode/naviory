@@ -108,9 +108,9 @@ export default function OptionsApp() {
           return;
         }
         openConfirmDialog({
-          title: '导入数据',
+          title: 'import data',
           message: '导入数据会覆盖当前所有数据，确定继续吗？',
-          confirmLabel: '覆盖导入',
+          confirmLabel: 'overwrite',
           danger: true,
           onConfirm: async () => {
             await importData(data, 'overwrite');

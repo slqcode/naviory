@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { DialogCancelButton, DialogConfirmButton, DialogFooter } from './DialogButtons';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface Props {
   title: string;
@@ -17,13 +19,15 @@ export default function TypedConfirmDialog({
   message,
   requireText,
   danger,
-  confirmLabel = '确定',
-  cancelLabel = '取消',
+  confirmLabel = 'confirm',
+  cancelLabel = 'cancel',
   onConfirm,
   onCancel,
 }: Props) {
   const [typed, setTyped] = useState('');
   const matched = typed === requireText;
+
+  useEscapeKey(onCancel);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -58,19 +62,16 @@ export default function TypedConfirmDialog({
             className="input-mono"
           />
         </div>
-        <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
-          <button onClick={onCancel} className="btn-secondary" type="button">
-            {cancelLabel}
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={!matched}
-            className={danger ? 'btn-danger' : 'btn-primary'}
+        <DialogFooter hint="! irreversible">
+          <DialogCancelButton onClick={onCancel} label={cancelLabel} />
+          <DialogConfirmButton
             type="button"
-          >
-            {confirmLabel}
-          </button>
-        </div>
+            onClick={() => onConfirm()}
+            label={confirmLabel}
+            danger={danger}
+            disabled={!matched}
+          />
+        </DialogFooter>
       </div>
     </div>
   );
