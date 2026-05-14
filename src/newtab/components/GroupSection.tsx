@@ -23,6 +23,8 @@ import LinkCard from './LinkCard';
 interface Props {
   group: LinkGroup;
   links: QuickLink[];
+  query?: string;
+  matchedLinkIds?: Set<string>;
   onAddLink: () => void;
   onEditLink: (link: QuickLink) => void;
   onEditGroup: () => void;
@@ -36,6 +38,8 @@ const GroupSection = forwardRef<HTMLElement, Props>(function GroupSection(
   {
     group,
     links,
+    query,
+    matchedLinkIds,
     onAddLink,
     onEditLink,
     onEditGroup,
@@ -66,11 +70,20 @@ const GroupSection = forwardRef<HTMLElement, Props>(function GroupSection(
   const GroupIcon = getGroupIcon(group.icon);
   const colorStyle = getGroupColorStyle(group.color);
 
+  const isFiltering = !!query?.trim();
+  const matchCount = isFiltering && matchedLinkIds
+    ? links.filter((l) => matchedLinkIds.has(l.id)).length
+    : 0;
+  // 搜索期间，0 命中分组视图层折叠；其余强制展开（让用户看到命中）。
+  const effectiveCollapsed = isFiltering ? matchCount === 0 : group.collapsed;
+
   return (
     <section
       ref={ref}
       style={style}
-      className={`panel group/section relative ${isDragging ? 'opacity-50' : ''}`}
+      className={`panel group/section relative ${isDragging ? 'opacity-50' : ''} ${
+        isFiltering && matchCount === 0 ? 'opacity-50' : ''
+      }`}
     >
       {/* Header */}
       <header className="flex items-center gap-1 border-b border-border px-3 py-2">
@@ -88,8 +101,9 @@ const GroupSection = forwardRef<HTMLElement, Props>(function GroupSection(
         <button
           onClick={() => toggleGroupCollapsed(group.id)}
           className="flex min-w-0 flex-1 items-center gap-2 text-left text-text-primary hover:text-accent"
+          disabled={isFiltering}
         >
-          {group.collapsed ? (
+          {effectiveCollapsed ? (
             <ChevronRight size={14} className="shrink-0 text-text-muted" />
           ) : (
             <ChevronDown size={14} className="shrink-0 text-text-muted" />
@@ -104,7 +118,7 @@ const GroupSection = forwardRef<HTMLElement, Props>(function GroupSection(
             {group.name}
           </span>
           <span className="ml-1 shrink-0 font-mono text-[11px] text-text-muted">
-            ({links.length})
+            {isFiltering ? `(${matchCount}/${links.length})` : `(${links.length})`}
           </span>
         </button>
 
@@ -159,7 +173,7 @@ const GroupSection = forwardRef<HTMLElement, Props>(function GroupSection(
       </header>
 
       {/* Body */}
-      {!group.collapsed && (
+      {!effectiveCollapsed && (
         <div className="p-2">
           {links.length === 0 ? (
             <button
@@ -184,6 +198,7 @@ const GroupSection = forwardRef<HTMLElement, Props>(function GroupSection(
                     <SortableLink
                       key={link.id}
                       link={link}
+                      dimmed={isFiltering && !matchedLinkIds?.has(link.id)}
                       onEdit={() => onEditLink(link)}
                       onDelete={() => deleteLinkWithUndo(link.id)}
                     />
@@ -209,10 +224,12 @@ export default GroupSection;
 
 function SortableLink({
   link,
+  dimmed,
   onEdit,
   onDelete,
 }: {
   link: QuickLink;
+  dimmed?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -227,7 +244,7 @@ function SortableLink({
 
   return (
     <li ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <LinkCard link={link} onEdit={onEdit} onDelete={onDelete} />
+      <LinkCard link={link} dimmed={dimmed} onEdit={onEdit} onDelete={onDelete} />
     </li>
   );
 }

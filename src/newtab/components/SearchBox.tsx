@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { parseSearchInput, buildSearchUrl, SEARCH_ENGINES } from '@/utils/search';
 import { getFaviconUrl, getInitialLetter } from '@/utils/favicon';
-import type { QuickLink } from '@/types';
+import type { LinkGroup, QuickLink } from '@/types';
+import type { RankedLink } from '@/utils/searchIndex';
 
 const PREFIX_HINTS: Array<{ prefix: string; label: string }> = [
   { prefix: 'g', label: 'Google' },
@@ -12,31 +13,45 @@ const PREFIX_HINTS: Array<{ prefix: string; label: string }> = [
   { prefix: 'npm', label: 'npm' },
 ];
 
-export default function SearchBox() {
-  const [query, setQuery] = useState('');
-  const [focused, setFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+const MAX_RESULTS = 30;
 
-  const links = useAppStore((s) => s.links);
+interface Props {
+  query: string;
+  onQueryChange: (q: string) => void;
+  rankedMatches: RankedLink[];
+  groups: LinkGroup[];
+}
+
+export default function SearchBox({ query, onQueryChange, rankedMatches, groups }: Props) {
+  const [focused, setFocused] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
   const defaultEngine = useAppStore((s) => s.settings.defaultSearchEngine);
   const defaultOpenMode = useAppStore((s) => s.settings.defaultOpenMode);
 
   const { hasPrefix, engine, query: cleanQuery } = parseSearchInput(query);
+  const groupNameById = new Map(groups.map((g) => [g.id, g.name]));
 
   const matchedLinks: QuickLink[] =
     hasPrefix || !cleanQuery
       ? []
-      : links
-          .filter((l) => {
-            const q = cleanQuery.toLowerCase();
-            return (
-              l.title.toLowerCase().includes(q) ||
-              l.url.toLowerCase().includes(q) ||
-              (l.description?.toLowerCase().includes(q) ?? false) ||
-              (l.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
-            );
-          })
-          .slice(0, 8);
+      : rankedMatches.slice(0, MAX_RESULTS).map((m) => m.link);
+
+  // 当结果集变化时把高亮归位
+  useEffect(() => {
+    if (highlight >= matchedLinks.length) {
+      setHighlight(matchedLinks.length === 0 ? 0 : matchedLinks.length - 1);
+    }
+  }, [matchedLinks.length, highlight]);
+
+  // 高亮项滚入视野
+  useEffect(() => {
+    if (!listRef.current) return;
+    const el = listRef.current.querySelector<HTMLElement>(`[data-idx="${highlight}"]`);
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [highlight]);
 
   const openLink = (link: QuickLink) => {
     const mode = link.openMode ?? defaultOpenMode;
@@ -54,7 +69,7 @@ export default function SearchBox() {
     if (hasPrefix && engine) {
       window.location.href = buildSearchUrl(engine, cleanQuery);
     } else if (matchedLinks.length > 0) {
-      openLink(matchedLinks[0]);
+      openLink(matchedLinks[Math.min(highlight, matchedLinks.length - 1)]);
     } else {
       const url = SEARCH_ENGINES[defaultEngine] + encodeURIComponent(cleanQuery);
       window.location.href = url;
@@ -65,26 +80,46 @@ export default function SearchBox() {
     inputRef.current?.focus();
   }, []);
 
-  // 全局 "/" 聚焦 + Esc 失焦/清空
+  // 全局 / 与 Cmd/Ctrl+K 聚焦；Esc 失焦
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === '/') {
+      const isShortcut = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k';
+      if (e.key === '/' || isShortcut) {
         const target = e.target as HTMLElement | null;
         const tag = target?.tagName;
         const editable = target?.isContentEditable;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || editable) return;
+        if (!isShortcut && (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || editable))
+          return;
         e.preventDefault();
         inputRef.current?.focus();
-        return;
-      }
-      if (e.key === 'Escape' && document.activeElement === inputRef.current) {
-        setQuery('');
-        inputRef.current?.blur();
+        inputRef.current?.select();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' && matchedLinks.length > 0) {
+      e.preventDefault();
+      setHighlight((h) => (h + 1) % matchedLinks.length);
+    } else if (e.key === 'ArrowUp' && matchedLinks.length > 0) {
+      e.preventDefault();
+      setHighlight((h) => (h - 1 + matchedLinks.length) % matchedLinks.length);
+    } else if (e.key === 'Escape') {
+      if (query) {
+        e.preventDefault();
+        onQueryChange('');
+        setHighlight(0);
+      } else {
+        inputRef.current?.blur();
+      }
+    } else if (e.key === 'Tab' && matchedLinks.length > 0 && !e.shiftKey) {
+      // Tab 也确认
+      e.preventDefault();
+      openLink(matchedLinks[Math.min(highlight, matchedLinks.length - 1)]);
+    }
+  };
 
   const showPanel = focused && (matchedLinks.length > 0 || (hasPrefix && engine) || !query);
 
@@ -97,44 +132,70 @@ export default function SearchBox() {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              onQueryChange(e.target.value);
+              setHighlight(0);
+            }}
             onFocus={() => setFocused(true)}
             onBlur={() => setTimeout(() => setFocused(false), 150)}
-            placeholder="Search links or type command..."
+            onKeyDown={handleKeyDown}
+            placeholder="Search links or type command... (try xf for 讯飞)"
             className="flex-1 bg-transparent text-text-primary placeholder-text-muted outline-none"
             autoComplete="off"
             spellCheck={false}
           />
-          <span className="kbd hidden sm:inline-flex">/</span>
+          <span className="kbd hidden sm:inline-flex">⌘K</span>
         </div>
       </form>
 
       {showPanel && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-md border border-border bg-surface-elevated shadow-md">
+        <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-[70vh] overflow-y-auto rounded-md border border-border bg-surface-elevated shadow-md">
           {matchedLinks.length > 0 && (
             <div className="border-b border-border">
               <div className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                # matches ({matchedLinks.length})
+                # matches ({matchedLinks.length}
+                {rankedMatches.length > MAX_RESULTS ? ` of ${rankedMatches.length}` : ''})
               </div>
-              <ul className="py-1">
-                {matchedLinks.map((link) => (
-                  <li key={link.id}>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        openLink(link);
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-hover"
-                    >
-                      <LinkIcon url={link.url} title={link.title} icon={link.icon} />
-                      <span className="flex-1 truncate text-sm text-text-primary">{link.title}</span>
-                      <span className="ml-2 shrink-0 truncate font-mono text-[11px] text-text-muted max-w-[40%]">
-                        {safeHost(link.url)}
-                      </span>
-                    </button>
-                  </li>
-                ))}
+              <ul ref={listRef} className="py-1">
+                {matchedLinks.map((link, idx) => {
+                  const isHighlighted = idx === highlight;
+                  const groupName = groupNameById.get(link.groupId);
+                  return (
+                    <li key={link.id}>
+                      <button
+                        type="button"
+                        data-idx={idx}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          openLink(link);
+                        }}
+                        onMouseEnter={() => setHighlight(idx)}
+                        className={`flex w-full items-center gap-2 px-3 py-1.5 text-left ${
+                          isHighlighted
+                            ? 'bg-accent/10 text-accent'
+                            : 'hover:bg-surface-hover'
+                        }`}
+                      >
+                        <LinkIcon url={link.url} title={link.title} icon={link.icon} />
+                        <span
+                          className={`flex-1 truncate text-sm ${
+                            isHighlighted ? 'text-accent' : 'text-text-primary'
+                          }`}
+                        >
+                          {link.title}
+                        </span>
+                        {groupName && (
+                          <span className="ml-2 shrink-0 truncate font-mono text-[11px] text-text-muted">
+                            # {groupName}
+                          </span>
+                        )}
+                        <span className="ml-2 shrink-0 truncate font-mono text-[11px] text-text-muted max-w-[35%]">
+                          {safeHost(link.url)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -150,7 +211,7 @@ export default function SearchBox() {
           {!hasPrefix && (
             <div className="px-3 py-2">
               <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                # prefixes
+                # prefixes · ↑↓ navigate · ↵ open · esc clear
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {PREFIX_HINTS.map((h) => (

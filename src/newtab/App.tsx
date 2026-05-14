@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Settings, Plus, Download, Upload, Terminal } from 'lucide-react';
 import {
   DndContext,
@@ -19,6 +19,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from '@/hooks/useToast';
 import { downloadJson, readJsonFile, validateExportData } from '@/utils/importExport';
+import { buildSearchIndex, rankMatches } from '@/utils/searchIndex';
 import SearchBox from './components/SearchBox';
 import GroupSection from './components/GroupSection';
 import LinkEditorDialog from './components/LinkEditorDialog';
@@ -42,6 +43,17 @@ export default function App() {
     exportData,
     reorderGroups,
   } = useAppStore();
+
+  const [query, setQuery] = useState('');
+  const searchIndex = useMemo(() => buildSearchIndex(links), [links]);
+  const rankedMatches = useMemo(
+    () => (query.trim() ? rankMatches(query, searchIndex) : []),
+    [query, searchIndex]
+  );
+  const matchedLinkIds = useMemo(
+    () => new Set(rankedMatches.map((m) => m.link.id)),
+    [rankedMatches]
+  );
 
   const [linkEditorOpen, setLinkEditorOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<QuickLink | null>(null);
@@ -182,7 +194,12 @@ export default function App() {
 
       {/* Search */}
       <div className="mx-auto w-full max-w-3xl px-4 pt-6">
-        <SearchBox />
+        <SearchBox
+          query={query}
+          onQueryChange={setQuery}
+          rankedMatches={rankedMatches}
+          groups={groups}
+        />
       </div>
 
       {/* Groups */}
@@ -198,6 +215,8 @@ export default function App() {
           <GroupGrid
             groups={groups}
             links={links}
+            query={query}
+            matchedLinkIds={matchedLinkIds}
             onAddLink={handleAddLink}
             onEditLink={handleEditLink}
             onEditGroup={handleEditGroup}
@@ -268,6 +287,8 @@ function IconButton({
 function GroupGrid({
   groups,
   links,
+  query,
+  matchedLinkIds,
   onAddLink,
   onEditLink,
   onEditGroup,
@@ -277,6 +298,8 @@ function GroupGrid({
 }: {
   groups: LinkGroup[];
   links: QuickLink[];
+  query: string;
+  matchedLinkIds: Set<string>;
   onAddLink: (groupId?: string) => void;
   onEditLink: (link: QuickLink) => void;
   onEditGroup: (group: LinkGroup) => void;
@@ -317,6 +340,8 @@ function GroupGrid({
                 links={links
                   .filter((l) => l.groupId === group.id)
                   .sort((a, b) => a.sort - b.sort)}
+                query={query}
+                matchedLinkIds={matchedLinkIds}
                 onAddLink={() => onAddLink(group.id)}
                 onEditLink={onEditLink}
                 onEditGroup={() => onEditGroup(group)}
@@ -343,6 +368,8 @@ function GroupGrid({
 function SortableGroupItem({
   group,
   links: groupLinks,
+  query,
+  matchedLinkIds,
   onAddLink,
   onEditLink,
   onEditGroup,
@@ -350,6 +377,8 @@ function SortableGroupItem({
 }: {
   group: LinkGroup;
   links: QuickLink[];
+  query: string;
+  matchedLinkIds: Set<string>;
   onAddLink: () => void;
   onEditLink: (link: QuickLink) => void;
   onEditGroup: () => void;
@@ -371,6 +400,8 @@ function SortableGroupItem({
       dragHandleProps={{ ...attributes, ...listeners } as React.HTMLAttributes<HTMLButtonElement>}
       group={group}
       links={groupLinks}
+      query={query}
+      matchedLinkIds={matchedLinkIds}
       onAddLink={onAddLink}
       onEditLink={onEditLink}
       onEditGroup={onEditGroup}

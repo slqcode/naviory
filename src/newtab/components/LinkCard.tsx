@@ -6,11 +6,12 @@ import type { QuickLink } from '@/types';
 
 interface Props {
   link: QuickLink;
+  dimmed?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export default function LinkCard({ link, onEdit, onDelete }: Props) {
+export default function LinkCard({ link, dimmed, onEdit, onDelete }: Props) {
   const [iconFailed, setIconFailed] = useState(false);
   const defaultOpenMode = useAppStore((s) => s.settings.defaultOpenMode);
   const iconUrl = link.icon || getFaviconUrl(link.url);
@@ -29,7 +30,8 @@ export default function LinkCard({ link, onEdit, onDelete }: Props) {
   return (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={dimmed ? -1 : 0}
+      aria-disabled={dimmed}
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -37,7 +39,11 @@ export default function LinkCard({ link, onEdit, onDelete }: Props) {
           handleClick(e as unknown as React.MouseEvent);
         }
       }}
-      className="group/link relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-surface-hover focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+      className={`group/link relative flex items-center gap-2 rounded-md px-2 py-1.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 ${
+        dimmed
+          ? 'pointer-events-none opacity-25'
+          : 'cursor-pointer hover:bg-surface-hover'
+      }`}
       title={link.description || link.url}
     >
       {iconUrl && !iconFailed ? (
