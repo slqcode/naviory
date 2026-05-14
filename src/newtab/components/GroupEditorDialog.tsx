@@ -44,12 +44,16 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="panel-elevated flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden">
+      <form
+        onSubmit={handleSubmit}
+        className="panel-elevated flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden"
+      >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="font-mono text-sm font-semibold text-text-primary">
             <span className="text-text-muted">$</span> {group ? 'edit group' : 'new group'}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="rounded p-1 text-text-muted hover:bg-surface-hover hover:text-text-primary"
           >
@@ -57,29 +61,25 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          {/* preview */}
-          <div className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5">
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-md ${previewStyle.bgClass}`}
+        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          {/* preview row — minimal, console-style */}
+          <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs">
+            <span className="text-text-muted">preview&gt;</span>
+            <span
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded ${previewStyle.bgClass}`}
             >
-              <PreviewIcon size={16} className={previewStyle.textClass} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-mono text-sm text-text-primary">
-                <span className="text-text-muted"># </span>
-                {name.trim() || 'group-preview'}
-              </div>
-              <div className="font-mono text-[11px] text-text-muted">
-                icon:{icon} · color:{color}
-              </div>
-            </div>
+              <PreviewIcon size={12} className={previewStyle.textClass} />
+            </span>
+            <span className="truncate text-text-primary">
+              <span className="text-text-muted"># </span>
+              {name.trim() || 'group-name'}
+            </span>
+            <span className="ml-auto shrink-0 text-text-muted">
+              {icon}:{color}
+            </span>
           </div>
 
-          <label className="block">
-            <span className="mb-1 block font-mono text-[11px] uppercase tracking-wider text-text-muted">
-              name <span className="ml-1 text-accent">*</span>
-            </span>
+          <Field label="name" required>
             <input
               type="text"
               value={name}
@@ -89,13 +89,10 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
               maxLength={20}
               autoFocus
             />
-          </label>
+          </Field>
 
-          <div>
-            <span className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-text-muted">
-              icon
-            </span>
-            <div className="grid grid-cols-8 gap-1.5">
+          <Field label="icon">
+            <div className="grid grid-cols-8 gap-1.5 rounded-md border border-border bg-surface p-2">
               {GROUP_ICONS.map(({ name: iconName, component: IconComp }) => {
                 const selected = icon === iconName;
                 return (
@@ -104,24 +101,21 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
                     type="button"
                     onClick={() => setIcon(iconName)}
                     title={iconName}
-                    className={`flex aspect-square items-center justify-center rounded-md border transition-colors ${
+                    className={`flex aspect-square items-center justify-center rounded transition-colors ${
                       selected
-                        ? 'border-accent/50 bg-accent/10 text-accent'
-                        : 'border-border text-text-secondary hover:border-border-strong hover:text-text-primary'
+                        ? 'bg-accent/15 text-accent ring-1 ring-accent/50'
+                        : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                     }`}
                   >
-                    <IconComp size={15} />
+                    <IconComp size={14} />
                   </button>
                 );
               })}
             </div>
-          </div>
+          </Field>
 
-          <div>
-            <span className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-text-muted">
-              color
-            </span>
-            <div className="flex flex-wrap gap-2">
+          <Field label="color">
+            <div className="flex flex-wrap gap-1.5 rounded-md border border-border bg-surface p-2">
               {GROUP_COLORS.map((c) => {
                 const selected = color === c.key;
                 return (
@@ -130,28 +124,48 @@ export default function GroupEditorDialog({ group, onClose }: Props) {
                     type="button"
                     onClick={() => setColor(c.key)}
                     title={c.key}
-                    className={`flex h-7 w-7 items-center justify-center rounded-md transition-transform ${
-                      selected ? 'scale-110 ring-2 ring-border-strong ring-offset-2 ring-offset-surface-elevated' : 'hover:scale-105'
+                    className={`flex h-6 w-6 items-center justify-center rounded transition-transform ${
+                      selected ? 'ring-1 ring-accent ring-offset-2 ring-offset-surface' : 'hover:scale-110'
                     }`}
                     style={{ backgroundColor: c.hex }}
                   >
-                    {selected && <Check size={12} className="text-white" />}
+                    {selected && <Check size={11} className="text-white drop-shadow" />}
                   </button>
                 );
               })}
             </div>
-          </div>
-        </form>
+          </Field>
+        </div>
 
         <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
           <button type="button" onClick={onClose} className="btn-secondary">
             取消
           </button>
-          <button type="button" onClick={handleSubmit} className="btn-primary">
+          <button type="submit" className="btn-primary">
             保存
           </button>
         </div>
-      </div>
+      </form>
     </div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block font-mono text-[11px] uppercase tracking-wider text-text-muted">
+        {label}
+        {required && <span className="ml-1 text-accent">*</span>}
+      </span>
+      {children}
+    </label>
   );
 }

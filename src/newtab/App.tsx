@@ -1,5 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Settings, Plus, Download, Upload, Terminal } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from '@/hooks/useToast';
@@ -25,6 +40,7 @@ export default function App() {
     deleteGroup,
     importData,
     exportData,
+    reorderGroups,
   } = useAppStore();
 
   const [linkEditorOpen, setLinkEditorOpen] = useState(false);
@@ -179,33 +195,16 @@ export default function App() {
             onAction={handleAddGroup}
           />
         ) : (
-          <>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {groups.map((group) => (
-                <GroupSection
-                  key={group.id}
-                  group={group}
-                  links={links
-                    .filter((l) => l.groupId === group.id)
-                    .sort((a, b) => a.sort - b.sort)}
-                  onAddLink={() => handleAddLink(group.id)}
-                  onEditLink={handleEditLink}
-                  onEditGroup={() => handleEditGroup(group)}
-                  onDeleteGroup={() => handleDeleteGroup(group)}
-                />
-              ))}
-            </div>
-
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={handleAddGroup}
-                className="btn-secondary flex items-center gap-2 font-mono"
-              >
-                <Plus size={14} />
-                new group
-              </button>
-            </div>
-          </>
+          <GroupGrid
+            groups={groups}
+            links={links}
+            onAddLink={handleAddLink}
+            onEditLink={handleEditLink}
+            onEditGroup={handleEditGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onAddGroup={handleAddGroup}
+            onReorder={reorderGroups}
+          />
         )}
       </main>
 
@@ -263,5 +262,119 @@ function IconButton({
     >
       {children}
     </button>
+  );
+}
+
+function GroupGrid({
+  groups,
+  links,
+  onAddLink,
+  onEditLink,
+  onEditGroup,
+  onDeleteGroup,
+  onAddGroup,
+  onReorder,
+}: {
+  groups: LinkGroup[];
+  links: QuickLink[];
+  onAddLink: (groupId?: string) => void;
+  onEditLink: (link: QuickLink) => void;
+  onEditGroup: (group: LinkGroup) => void;
+  onDeleteGroup: (group: LinkGroup) => void;
+  onAddGroup: () => void;
+  onReorder: (orderedIds: string[]) => Promise<void>;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = groups.findIndex((g) => g.id === active.id);
+    const newIndex = groups.findIndex((g) => g.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const orderedIds = arrayMove(groups, oldIndex, newIndex).map((g) => g.id);
+    onReorder(orderedIds);
+  };
+
+  return (
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={groups.map((g) => g.id)}
+          strategy={rectSortingStrategy}
+        >
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {groups.map((group) => (
+              <SortableGroupItem
+                key={group.id}
+                group={group}
+                links={links
+                  .filter((l) => l.groupId === group.id)
+                  .sort((a, b) => a.sort - b.sort)}
+                onAddLink={() => onAddLink(group.id)}
+                onEditLink={onEditLink}
+                onEditGroup={() => onEditGroup(group)}
+                onDeleteGroup={() => onDeleteGroup(group)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={onAddGroup}
+          className="btn-secondary flex items-center gap-2 font-mono"
+        >
+          <Plus size={14} />
+          new group
+        </button>
+      </div>
+    </>
+  );
+}
+
+function SortableGroupItem({
+  group,
+  links: groupLinks,
+  onAddLink,
+  onEditLink,
+  onEditGroup,
+  onDeleteGroup,
+}: {
+  group: LinkGroup;
+  links: QuickLink[];
+  onAddLink: () => void;
+  onEditLink: (link: QuickLink) => void;
+  onEditGroup: () => void;
+  onDeleteGroup: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: group.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <GroupSection
+      ref={setNodeRef}
+      style={style}
+      isDragging={isDragging}
+      dragHandleProps={{ ...attributes, ...listeners } as React.HTMLAttributes<HTMLButtonElement>}
+      group={group}
+      links={groupLinks}
+      onAddLink={onAddLink}
+      onEditLink={onEditLink}
+      onEditGroup={onEditGroup}
+      onDeleteGroup={onDeleteGroup}
+    />
   );
 }
