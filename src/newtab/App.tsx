@@ -11,7 +11,6 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
   arrayMove,
-  rectSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -28,6 +27,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import Toast from './components/Toast';
 import EmptyState from './components/EmptyState';
 import StatusBar from './components/StatusBar';
+import MasonryGrid from './components/MasonryGrid';
 import type { LinkGroup, QuickLink } from '@/types';
 
 export default function App() {
@@ -328,11 +328,8 @@ function GroupGrid({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext
-          items={groups.map((g) => g.id)}
-          strategy={rectSortingStrategy}
-        >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <SortableContext items={groups.map((g) => g.id)}>
+          <MasonryGrid gap={16}>
             {groups.map((group) => (
               <SortableGroupItem
                 key={group.id}
@@ -348,7 +345,7 @@ function GroupGrid({
                 onDeleteGroup={() => onDeleteGroup(group)}
               />
             ))}
-          </div>
+          </MasonryGrid>
         </SortableContext>
       </DndContext>
 
