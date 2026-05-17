@@ -174,7 +174,7 @@ const GroupSection = forwardRef<HTMLElement, Props>(function GroupSection(
 
       {/* Body */}
       {!effectiveCollapsed && (
-        <div className="p-2">
+        <div className="max-h-[400px] overflow-y-auto p-2">
           {links.length === 0 ? (
             <button
               onClick={onAddLink}

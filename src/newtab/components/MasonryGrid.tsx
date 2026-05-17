@@ -123,6 +123,7 @@ export default function MasonryGrid({ children, gap = 16, className }: MasonryGr
               if (el) itemRefs.current.set(i, el);
               else itemRefs.current.delete(i);
             }}
+            className="[&:focus-within]:z-10 [&:hover]:z-10"
             style={style}
           >
             {child}
